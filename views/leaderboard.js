@@ -10,7 +10,7 @@ export function computeStandings(predictions, results, config) {
   }
   return [...totals.entries()]
     .map(([player, points]) => ({ player, points }))
-    .sort((a, b) => b.points - a.points);
+    .sort((a, b) => b.points - a.points || a.player.localeCompare(b.player));
 }
 
 export function renderLeaderboard(root, ctx) {
@@ -21,7 +21,10 @@ export function renderLeaderboard(root, ctx) {
   const body = document.createElement("tbody");
   standings.forEach((row, i) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${i + 1}</td><td>${row.player}</td><td>${row.points}</td>`;
+    const rankTd = document.createElement("td"); rankTd.textContent = i + 1;
+    const nameTd = document.createElement("td"); nameTd.textContent = row.player;
+    const ptsTd = document.createElement("td"); ptsTd.textContent = row.points;
+    tr.append(rankTd, nameTd, ptsTd);
     body.appendChild(tr);
   });
   table.appendChild(body);
