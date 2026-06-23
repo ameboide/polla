@@ -1,0 +1,15 @@
+* { box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; margin: 0; color: #1a1a1a; }
+header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #0a3d62; color: #fff; }
+nav { display: flex; gap: .5rem; padding: .5rem 1rem; border-bottom: 1px solid #ddd; }
+nav button { padding: .5rem 1rem; cursor: pointer; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; }
+nav button.active { background: #0a3d62; color: #fff; }
+main { padding: 1rem; max-width: 720px; margin: 0 auto; }
+.match { border: 1px solid #ddd; border-radius: 6px; padding: .75rem; margin-bottom: .5rem; }
+.match.locked { opacity: .6; }
+.match input { width: 3rem; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #eee; }
+#status { position: fixed; bottom: 1rem; right: 1rem; }
+#status.error { color: #b00; }
+.hidden { display: none; }
