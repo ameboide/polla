@@ -24,9 +24,11 @@ function configForm(ctx) {
   save.addEventListener("click", async () => {
     const fields = {};
     WEIGHTS.forEach((k) => { fields[k] = Number(inputs[k].value); });
+    save.disabled = true;
     ctx.setStatus("Saving weights…");
     try { await saveConfig(config.id ? config : null, fields); ctx.setStatus("Saved"); await ctx.refresh(); }
     catch (e) { ctx.setStatus(`Save failed: ${e.message}`, true); }
+    finally { save.disabled = false; }
   });
   form.appendChild(save);
   return form;
@@ -54,9 +56,11 @@ function resultsSection(ctx) {
     save.addEventListener("click", async () => {
       if (home.value === "" || away.value === "") { ctx.setStatus("Enter both scores", true); return; }
       const fields = { matchId: fx.id, homeGoals: Number(home.value), awayGoals: Number(away.value) };
+      save.disabled = true;
       ctx.setStatus("Saving result…");
       try { await saveResult(existing, fields); ctx.setStatus("Saved"); await ctx.refresh(); }
       catch (e) { ctx.setStatus(`Save failed: ${e.message}`, true); }
+      finally { save.disabled = false; }
     });
 
     card.append(" ", home, " - ", away, " ", save);

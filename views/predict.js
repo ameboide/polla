@@ -38,9 +38,11 @@ export function renderPredict(root, ctx) {
         homeGoals: Number(home.value), awayGoals: Number(away.value),
       };
       if (home.value === "" || away.value === "") { setStatus("Enter both scores", true); return; }
+      save.disabled = true;
       setStatus("Saving…");
       try { await savePrediction(existing, fields); setStatus("Saved"); await refresh(); }
       catch (e) { setStatus(`Save failed: ${e.message}`, true); }
+      finally { save.disabled = false; }
     });
 
     card.append(" ", home, " - ", away, " ", save);
