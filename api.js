@@ -28,7 +28,7 @@ export async function list(collection) {
 
 export async function create(collection, fields) {
   const body = await request("POST", `/collections/${collection}/records`, fields);
-  return normalize(body.data ? body : { id: body.id, data: body.data ?? fields });
+  return normalize(body.data ? body : { id: body.id, data: fields });
 }
 
 export async function update(collection, id, fields) {
