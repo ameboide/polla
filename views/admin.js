@@ -1,4 +1,4 @@
-import { saveResult, saveConfig } from "../store.js";
+import { saveResults, saveConfig, mergeMatches } from "../store.js";
 import { renderBatchGrid } from "./batch-grid.js";
 
 const WEIGHTS = ["winner", "exactScore", "goalDiff", "totalGoals", "eachTeamGoals"];
@@ -44,7 +44,6 @@ function resultsSection(root, ctx) {
   const adminResult = (fx) => ctx.data.results.find((r) => r.matchId === fx.id) || null;
   renderBatchGrid(root, ctx, {
     fixtures: ctx.data.fixtures,
-    existingFor: adminResult,
     // Prefill with the admin's saved result, else the fixture's real score
     // (from fixtures.json) so unentered matches show their actual result.
     baselineFor: (fx) => {
@@ -53,8 +52,12 @@ function resultsSection(root, ctx) {
       return fx.result ? { homeGoals: fx.result.homeGoals, awayGoals: fx.result.awayGoals } : null;
     },
     lockedFor: () => false,
-    save: (existing, fields) => saveResult(existing, fields),
-    buildFields: (fx, score) => ({ matchId: fx.id, ...score }),
+    // All results live in one record; merge edits into its matches array.
+    saveAll: (saveable) => {
+      const rec = ctx.data.resultsRecord || null;
+      const edits = saveable.map((s) => ({ matchId: s.key, ...s.fields }));
+      return saveResults(rec, mergeMatches(rec ? rec.matches : [], edits));
+    },
   });
 }
 

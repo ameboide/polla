@@ -1,4 +1,4 @@
-import { savePrediction } from "../store.js";
+import { savePlayerPredictions, mergeMatches } from "../store.js";
 import { renderBatchGrid } from "./batch-grid.js";
 import { effectiveResults, pointsByMatch } from "./leaderboard.js";
 
@@ -54,13 +54,17 @@ export function renderPredict(root, ctx) {
   const pts = pointsByMatch(data.fixtures, data.predictions, data.results, data.config, player);
   const scoresOf = (rec) => (rec ? { homeGoals: rec.homeGoals, awayGoals: rec.awayGoals } : null);
 
+  const playerRecord = () => (data.predictionRecords || []).find((r) => r.player === player) || null;
+
   renderBatchGrid(root, ctx, {
     fixtures: data.fixtures,
-    existingFor: (fx) => findPrediction(data.predictions, player, fx.id),
     baselineFor: (fx) => scoresOf(findPrediction(data.predictions, player, fx.id)),
     lockedFor: (fx) => !ctx.adminUnlockPast && Date.now() >= Date.parse(fx.kickoff),
-    save: (existing, fields) => savePrediction(existing, fields),
-    buildFields: (fx, score) => ({ player, matchId: fx.id, ...score }),
+    saveAll: (saveable) => {
+      const rec = playerRecord();
+      const edits = saveable.map((s) => ({ matchId: s.key, ...s.fields }));
+      return savePlayerPredictions(rec, player, mergeMatches(rec ? rec.matches : [], edits));
+    },
     resultFor: (fx) => resultByMatch.get(fx.id) || null,
     pointsFor: (fx) => (pts.has(fx.id) ? pts.get(fx.id) : null),
     dayPoints: (fxs) => fxs.reduce((s, fx) => s + (pts.get(fx.id) || 0), 0),

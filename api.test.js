@@ -9,42 +9,45 @@ function mockFetch(responder) {
   };
 }
 
-test("normalize flattens data wrapper", () => {
-  assert.deepEqual(normalize({ id: "x", data: { a: 1 } }), { id: "x", a: 1 });
+test("normalize maps _id to id and keeps other fields flat", () => {
+  assert.deepEqual(normalize({ _id: "x", player: "Ana", matches: [] }),
+    { id: "x", player: "Ana", matches: [] });
 });
 
-test("list returns normalized array and sends api key", async () => {
+test("list GETs /collection, sends x-apikey, returns normalized array", async () => {
   let seen;
-  mockFetch((url, opts) => { seen = { url, opts }; return { data: [{ id: "1", data: { player: "Ana" } }] }; });
+  mockFetch((url, opts) => { seen = { url, opts }; return [{ _id: "1", player: "Ana" }]; });
   const rows = await list("predictions");
   assert.deepEqual(rows, [{ id: "1", player: "Ana" }]);
-  assert.match(seen.url, /\/collections\/predictions\/records$/);
-  assert.ok(seen.opts.headers["x-api-key"]);
+  assert.match(seen.url, /\/predictions$/);
+  assert.equal(seen.opts.method, "GET");
+  assert.ok(seen.opts.headers["x-apikey"]);
 });
 
-test("create posts {data:{...}} and returns normalized record", async () => {
-  let sentBody;
-  mockFetch((url, opts) => { sentBody = JSON.parse(opts.body); return { id: "9", data: sentBody.data }; });
-  const rec = await create("results", { matchId: "m1", homeGoals: 2, awayGoals: 1 });
-  assert.deepEqual(sentBody, { data: { matchId: "m1", homeGoals: 2, awayGoals: 1 } });
-  assert.deepEqual(rec, { id: "9", matchId: "m1", homeGoals: 2, awayGoals: 1 });
+test("create POSTs a flat body (no data wrapper) and normalizes the result", async () => {
+  let sent;
+  mockFetch((url, opts) => { sent = { url, body: JSON.parse(opts.body) }; return { _id: "9", ...JSON.parse(opts.body) }; });
+  const rec = await create("results", { matches: [{ matchId: "m1", homeGoals: 2, awayGoals: 1 }] });
+  assert.match(sent.url, /\/results$/);
+  assert.deepEqual(sent.body, { matches: [{ matchId: "m1", homeGoals: 2, awayGoals: 1 }] });
+  assert.deepEqual(rec, { id: "9", matches: [{ matchId: "m1", homeGoals: 2, awayGoals: 1 }] });
 });
 
-test("update puts {data:{...}} to the record URL and normalizes", async () => {
+test("update PUTs to /collection/:id with a flat body", async () => {
   let seen;
-  mockFetch((url, opts) => { seen = { url, body: JSON.parse(opts.body), method: opts.method }; return { id: "7", data: JSON.parse(opts.body).data }; });
-  const rec = await update("results", "7", { matchId: "m1", homeGoals: 1, awayGoals: 0 });
+  mockFetch((url, opts) => { seen = { url, method: opts.method, body: JSON.parse(opts.body) }; return { _id: "7", ...JSON.parse(opts.body) }; });
+  const rec = await update("predictions", "7", { player: "Bob", matches: [] });
   assert.equal(seen.method, "PUT");
-  assert.match(seen.url, /\/collections\/results\/records\/7$/);
-  assert.deepEqual(seen.body, { data: { matchId: "m1", homeGoals: 1, awayGoals: 0 } });
-  assert.deepEqual(rec, { id: "7", matchId: "m1", homeGoals: 1, awayGoals: 0 });
+  assert.match(seen.url, /\/predictions\/7$/);
+  assert.deepEqual(seen.body, { player: "Bob", matches: [] });
+  assert.deepEqual(rec, { id: "7", player: "Bob", matches: [] });
 });
 
-test("remove deletes the record URL and returns undefined", async () => {
+test("remove DELETEs /collection/:id and returns undefined", async () => {
   let seen;
   mockFetch((url, opts) => { seen = { url, method: opts.method }; return {}; });
-  const out = await remove("predictions", "3");
+  const out = await remove("config", "3");
   assert.equal(seen.method, "DELETE");
-  assert.match(seen.url, /\/collections\/predictions\/records\/3$/);
+  assert.match(seen.url, /\/config\/3$/);
   assert.equal(out, undefined);
 });

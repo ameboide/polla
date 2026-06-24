@@ -1,6 +1,49 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_CONFIG, resolveConfig } from "./store.js";
+import { DEFAULT_CONFIG, resolveConfig, flattenPredictions, resultsMatches, mergeMatches } from "./store.js";
+
+test("flattenPredictions expands per-player records into flat rows", () => {
+  const records = [
+    { id: "p1", player: "Ana", matches: [
+      { matchId: "m1", homeGoals: 2, awayGoals: 1 },
+      { matchId: "m2", homeGoals: 0, awayGoals: 0 },
+    ] },
+    { id: "p2", player: "Bob", matches: [{ matchId: "m1", homeGoals: 1, awayGoals: 1 }] },
+    { id: "p3", player: "Cy", matches: [] }, // no matches -> contributes nothing
+  ];
+  assert.deepEqual(flattenPredictions(records), [
+    { player: "Ana", matchId: "m1", homeGoals: 2, awayGoals: 1 },
+    { player: "Ana", matchId: "m2", homeGoals: 0, awayGoals: 0 },
+    { player: "Bob", matchId: "m1", homeGoals: 1, awayGoals: 1 },
+  ]);
+});
+
+test("resultsMatches returns the matches array or empty", () => {
+  assert.deepEqual(resultsMatches({ id: "r1", matches: [{ matchId: "m1", homeGoals: 1, awayGoals: 0 }] }),
+    [{ matchId: "m1", homeGoals: 1, awayGoals: 0 }]);
+  assert.deepEqual(resultsMatches(null), []);
+});
+
+test("mergeMatches overlays edits by matchId, keeping untouched ones", () => {
+  const existing = [
+    { matchId: "m1", homeGoals: 1, awayGoals: 0 },
+    { matchId: "m2", homeGoals: 2, awayGoals: 2 },
+  ];
+  const edits = [
+    { matchId: "m2", homeGoals: 3, awayGoals: 0 }, // update
+    { matchId: "m3", homeGoals: 1, awayGoals: 1 }, // new
+  ];
+  assert.deepEqual(mergeMatches(existing, edits), [
+    { matchId: "m1", homeGoals: 1, awayGoals: 0 },
+    { matchId: "m2", homeGoals: 3, awayGoals: 0 },
+    { matchId: "m3", homeGoals: 1, awayGoals: 1 },
+  ]);
+});
+
+test("mergeMatches handles a null/empty existing array", () => {
+  assert.deepEqual(mergeMatches(null, [{ matchId: "m1", homeGoals: 0, awayGoals: 0 }]),
+    [{ matchId: "m1", homeGoals: 0, awayGoals: 0 }]);
+});
 
 test("resolveConfig returns the single existing record", () => {
   const rec = { id: "c1", winner: 4, exactScore: 8, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1 };

@@ -8,21 +8,20 @@ import { summarizeEdits, isDirty } from "./editing.js";
 //
 // opts:
 //   fixtures        — array of fixtures to render
-//   existingFor(fx) — saved record to upsert against (carries the id) or null
 //   baselineFor(fx) — {homeGoals,awayGoals} shown by default and used as the
-//                     dirty baseline, or null. May differ from existingFor:
-//                     e.g. a fixture's real result prefilled before any admin
-//                     record exists (editing it then CREATES a record).
+//                     dirty baseline, or null (e.g. a fixture's real result
+//                     prefilled before any saved record exists).
 //   lockedFor(fx)   — bool; locked inputs are disabled and never dirty
-//   save(existing, fields) — upsert one record, returns a promise
-//   buildFields(fx, score) — {homeGoals,awayGoals} -> the payload to save
+//   saveAll(saveable) — persist all dirty+complete edits in ONE call; saveable
+//                       is [{key:matchId, fields:{homeGoals,awayGoals}}].
+//                       Returns a promise; throwing keeps the edits.
 // Optional read-only display hooks (omit to hide; admin omits all):
 //   resultFor(fx)   — actual {homeGoals,awayGoals} to show, or null
 //   pointsFor(fx)   — points earned on fx, or null
 //   dayPoints(fxs)  — subtotal shown in a day's header
 //   totalPoints()   — grand total shown in a banner above the grid
 export function renderBatchGrid(root, ctx, opts) {
-  const entries = []; // {fx, existing, baseline, home, away, card}
+  const entries = []; // {fx, baseline, home, away, card}
 
   if (opts.totalPoints) {
     const banner = document.createElement("div");
@@ -62,23 +61,15 @@ export function renderBatchGrid(root, ctx, opts) {
     if (!saveable.length) return;
     button.disabled = true;
     ctx.setStatus(`Saving ${saveable.length}…`);
-    const byKey = new Map(entries.map((e) => [e.fx.id, e]));
-    const results = await Promise.allSettled(
-      saveable.map((s) => {
-        const e = byKey.get(s.key);
-        return opts.save(e.existing, opts.buildFields(e.fx, s.fields));
-      })
-    );
-    const failed = results.filter((r) => r.status === "rejected").length;
-    if (failed === results.length) {
+    try {
+      await opts.saveAll(saveable); // one record write
+      ctx.setStatus(`Saved ${saveable.length}`);
+      await ctx.refresh(); // re-renders with fresh baselines, clearing dirty state
+    } catch (e) {
       // Nothing persisted — keep the user's edits and let them retry.
-      ctx.setStatus(`All ${failed} saves failed — changes kept`, true);
+      ctx.setStatus(`Save failed: ${e.message} — changes kept`, true);
       button.disabled = false;
-      return;
     }
-    if (failed) ctx.setStatus(`Saved ${results.length - failed}, ${failed} failed`, true);
-    else ctx.setStatus(`Saved ${results.length}`);
-    await ctx.refresh(); // re-renders with fresh baselines, clearing dirty state
   });
 
   groupFixturesByDay(opts.fixtures).forEach((day) => {
@@ -92,7 +83,6 @@ export function renderBatchGrid(root, ctx, opts) {
     details.appendChild(summary);
 
     day.fixtures.forEach((fx) => {
-      const existing = opts.existingFor(fx);
       const baseline = opts.baselineFor(fx);
       const locked = opts.lockedFor(fx);
 
@@ -126,7 +116,7 @@ export function renderBatchGrid(root, ctx, opts) {
       }
 
       details.appendChild(card);
-      entries.push({ fx, existing, baseline, home, away, card });
+      entries.push({ fx, baseline, home, away, card });
     });
     root.appendChild(details);
   });
