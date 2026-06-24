@@ -10,6 +10,26 @@ export function resolveConfig(records) {
   return { id: null, ...DEFAULT_CONFIG };
 }
 
+// Scoring config changes almost never, but a GET for it ran on every page load
+// (1 of 3 calls) — costly against restdb's free request cap. Cache it in
+// localStorage with a short TTL so most loads skip that GET; admin saves write
+// through (see cacheConfig) so the editor never sees a stale value.
+const CONFIG_CACHE_KEY = "polla.config.cache";
+const CONFIG_TTL_MS = 5 * 60 * 1000;
+
+export function readCachedConfig() {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const { at, value } = JSON.parse(localStorage.getItem(CONFIG_CACHE_KEY) || "null") || {};
+    return at && Date.now() - at <= CONFIG_TTL_MS ? value : null;
+  } catch { return null; }
+}
+
+export function cacheConfig(value) {
+  if (typeof localStorage === "undefined") return;
+  try { localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify({ at: Date.now(), value })); } catch {}
+}
+
 // Each predictions record is { id, player, matches: [{matchId,homeGoals,awayGoals}] }.
 // Flatten to the {player, matchId, homeGoals, awayGoals} rows the views/scoring expect.
 export function flattenPredictions(records) {
@@ -44,16 +64,19 @@ export async function loadFixtures() {
 }
 
 export async function loadAll() {
+  const cachedConfig = readCachedConfig();
   const [fixtures, predictionRecords, resultRecords, configRecords] = await Promise.all([
     loadFixtures(),
     list(COLLECTIONS.predictions),
     list(COLLECTIONS.results),
-    list(COLLECTIONS.config),
+    cachedConfig ? Promise.resolve(null) : list(COLLECTIONS.config),
   ]);
+  const config = cachedConfig || resolveConfig(configRecords);
+  if (!cachedConfig) cacheConfig(config);
   const resultsRecord = resultRecords[0] || null;
   return {
     fixtures,
-    config: resolveConfig(configRecords),
+    config,
     // Raw records for upserts:
     predictionRecords,
     resultsRecord,

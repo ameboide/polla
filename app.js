@@ -70,7 +70,7 @@ async function refresh() {
 
 function ctx() {
   return {
-    data, player: actingPlayer(), isAdmin: isAdmin(), refresh, setStatus,
+    data, player: actingPlayer(), isAdmin: isAdmin(), refresh, rerender: renderActive, setStatus,
     setUnsavedCheck: (fn) => { unsavedCheck = fn; },
     adminUnlockPast: unlockPast,
     setUnlockPast: (b) => withUnsavedGuard(() => { unlockPast = b; renderActive(); }),

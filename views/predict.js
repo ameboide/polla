@@ -1,4 +1,4 @@
-import { savePlayerPredictions, mergeMatches } from "../store.js";
+import { savePlayerPredictions, mergeMatches, flattenPredictions } from "../store.js";
 import { renderBatchGrid } from "./batch-grid.js";
 import { effectiveResults, pointsByMatch } from "./leaderboard.js";
 
@@ -60,10 +60,15 @@ export function renderPredict(root, ctx) {
     fixtures: data.fixtures,
     baselineFor: (fx) => scoresOf(findPrediction(data.predictions, player, fx.id)),
     lockedFor: (fx) => !ctx.adminUnlockPast && Date.now() >= Date.parse(fx.kickoff),
-    saveAll: (saveable) => {
+    saveAll: async (saveable) => {
       const rec = playerRecord();
       const edits = saveable.map((s) => ({ matchId: s.key, ...s.fields }));
-      return savePlayerPredictions(rec, player, mergeMatches(rec ? rec.matches : [], edits));
+      const saved = await savePlayerPredictions(rec, player, mergeMatches(rec ? rec.matches : [], edits));
+      // Patch in-memory records so the re-render reflects the save without re-fetching.
+      const recs = data.predictionRecords || (data.predictionRecords = []);
+      const i = recs.findIndex((r) => (saved.id && r.id === saved.id) || r.player === player);
+      if (i >= 0) recs[i] = saved; else recs.push(saved);
+      data.predictions = flattenPredictions(recs);
     },
     resultFor: (fx) => resultByMatch.get(fx.id) || null,
     pointsFor: (fx) => (pts.has(fx.id) ? pts.get(fx.id) : null),

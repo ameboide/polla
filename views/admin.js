@@ -1,4 +1,4 @@
-import { saveResults, saveConfig, mergeMatches } from "../store.js";
+import { saveResults, saveConfig, mergeMatches, resultsMatches, cacheConfig } from "../store.js";
 import { renderBatchGrid } from "./batch-grid.js";
 
 const WEIGHTS = ["winner", "exactScore", "goalDiff", "totalGoals", "eachTeamGoals"];
@@ -31,7 +31,15 @@ function configForm(ctx, registerDirty) {
     WEIGHTS.forEach((k) => { fields[k] = Number(inputs[k].value); });
     save.disabled = true;
     ctx.setStatus("Saving weights…");
-    try { await saveConfig(config.id ? config : null, fields); ctx.setStatus("Saved"); await ctx.refresh(); }
+    try {
+      const saved = await saveConfig(config.id ? config : null, fields);
+      // Patch in-memory + cache (write-through) so no reload is needed and the
+      // cached config stays fresh for this admin.
+      ctx.data.config = saved;
+      cacheConfig(saved);
+      ctx.setStatus("Saved");
+      ctx.rerender();
+    }
     catch (e) { ctx.setStatus(`Save failed: ${e.message}`, true); }
     finally { save.disabled = false; }
   });
@@ -53,10 +61,13 @@ function resultsSection(root, ctx) {
     },
     lockedFor: () => false,
     // All results live in one record; merge edits into its matches array.
-    saveAll: (saveable) => {
+    saveAll: async (saveable) => {
       const rec = ctx.data.resultsRecord || null;
       const edits = saveable.map((s) => ({ matchId: s.key, ...s.fields }));
-      return saveResults(rec, mergeMatches(rec ? rec.matches : [], edits));
+      const saved = await saveResults(rec, mergeMatches(rec ? rec.matches : [], edits));
+      // Patch in-memory so the re-render reflects the save without re-fetching.
+      ctx.data.resultsRecord = saved;
+      ctx.data.results = resultsMatches(saved);
     },
   });
 }

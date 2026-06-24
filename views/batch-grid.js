@@ -63,9 +63,9 @@ export function renderBatchGrid(root, ctx, opts) {
     button.disabled = true;
     ctx.setStatus(`Saving ${saveable.length}…`);
     try {
-      await opts.saveAll(saveable); // one record write
+      await opts.saveAll(saveable); // one record write; patches ctx.data in place
       ctx.setStatus(`Saved ${saveable.length}`);
-      await ctx.refresh(); // re-renders with fresh baselines, clearing dirty state
+      ctx.rerender(); // rebuild from patched data — no reload, clears dirty state
     } catch (e) {
       // Nothing persisted — keep the user's edits and let them retry.
       ctx.setStatus(`Save failed: ${e.message} — changes kept`, true);
