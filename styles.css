@@ -27,3 +27,8 @@ th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #eee; }
 .admin-tools { border: 1px dashed #0a3d62; border-radius: 6px; padding: .5rem .75rem; margin-bottom: .75rem; background: #f0f4f8; font-size: .9rem; }
 .admin-tools input[list] { width: 10rem; }
 .admin-tools button { margin-left: .25rem; }
+.partial-leaderboard { margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; }
+.partial-leaderboard h2 { font-size: 1.1rem; margin: 0 0 .25rem; }
+.partial-note { font-size: .85rem; color: #555; margin: 0 0 .5rem; }
+.player-picker { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-bottom: .75rem; }
+.player-picker label { font-size: .9rem; cursor: pointer; }

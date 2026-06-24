@@ -27,6 +27,35 @@ export function pointsByMatch(fixtures, predictions, results, config, player) {
   return out;
 }
 
+// Unique player names appearing in predictions, sorted.
+export function allPlayers(predictions) {
+  return [...new Set(predictions.map((p) => p.player))].sort((a, b) => a.localeCompare(b));
+}
+
+// Match ids predicted by EVERY selected player (intersection). Empty if no
+// players selected. This is the set the partial leaderboard scores over, so
+// each selected player is judged on the exact same matches.
+export function eligibleMatchIds(predictions, selectedPlayers) {
+  if (selectedPlayers.length === 0) return new Set();
+  const predictedBy = new Map(selectedPlayers.map((p) => [p, new Set()]));
+  for (const pr of predictions) {
+    const set = predictedBy.get(pr.player);
+    if (set) set.add(pr.matchId);
+  }
+  const sets = [...predictedBy.values()];
+  const [first, ...rest] = sets;
+  return new Set([...first].filter((id) => rest.every((s) => s.has(id))));
+}
+
+// Standings restricted to the selected players and only the matches all of
+// them predicted. Returns { standings, matchCount }.
+export function partialStandings(predictions, results, config, selectedPlayers) {
+  const eligible = eligibleMatchIds(predictions, selectedPlayers);
+  const selected = new Set(selectedPlayers);
+  const subset = predictions.filter((p) => selected.has(p.player) && eligible.has(p.matchId));
+  return { standings: computeStandings(subset, results, config), matchCount: eligible.size };
+}
+
 export function computeStandings(predictions, results, config) {
   const resultByMatch = new Map(results.map((r) => [r.matchId, r]));
   const totals = new Map();
@@ -40,9 +69,9 @@ export function computeStandings(predictions, results, config) {
     .sort((a, b) => b.points - a.points || a.player.localeCompare(b.player));
 }
 
-export function renderLeaderboard(root, ctx) {
-  const { fixtures, predictions, results, config } = ctx.data;
-  const standings = computeStandings(predictions, effectiveResults(fixtures, results), config);
+// Build a standings table element, or a placeholder when empty.
+function standingsTable(standings, emptyText) {
+  if (!standings.length) return document.createTextNode(emptyText);
   const table = document.createElement("table");
   table.innerHTML = "<thead><tr><th>#</th><th>Player</th><th>Points</th></tr></thead>";
   const body = document.createElement("tbody");
@@ -55,5 +84,61 @@ export function renderLeaderboard(root, ctx) {
     body.appendChild(tr);
   });
   table.appendChild(body);
-  root.appendChild(standings.length ? table : document.createTextNode("No standings yet."));
+  return table;
+}
+
+export function renderLeaderboard(root, ctx) {
+  const { fixtures, predictions, results, config } = ctx.data;
+  const eff = effectiveResults(fixtures, results);
+
+  root.appendChild(standingsTable(computeStandings(predictions, eff, config), "No standings yet."));
+
+  // Partial leaderboard: a selectable subset of players scored only on the
+  // matches all of them predicted. Starts with everyone selected.
+  const players = allPlayers(predictions);
+  if (players.length === 0) return;
+
+  const section = document.createElement("section");
+  section.className = "partial-leaderboard";
+  const h = document.createElement("h2");
+  h.textContent = "Partial leaderboard";
+  section.appendChild(h);
+
+  const note = document.createElement("p");
+  note.className = "partial-note";
+  section.appendChild(note);
+
+  const picker = document.createElement("div");
+  picker.className = "player-picker";
+  const selected = new Set(players);
+  const checks = players.map((player) => {
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = true;
+    cb.value = player;
+    cb.addEventListener("change", () => {
+      if (cb.checked) selected.add(player); else selected.delete(player);
+      renderPartial();
+    });
+    label.append(cb, document.createTextNode(" " + player));
+    picker.appendChild(label);
+    return cb;
+  });
+  section.appendChild(picker);
+
+  const tableHolder = document.createElement("div");
+  section.appendChild(tableHolder);
+
+  function renderPartial() {
+    const chosen = players.filter((p) => selected.has(p));
+    const { standings, matchCount } = partialStandings(predictions, eff, config, chosen);
+    note.textContent = chosen.length
+      ? `Scoring ${chosen.length} player(s) over ${matchCount} match(es) all of them predicted.`
+      : "Select at least one player.";
+    tableHolder.innerHTML = "";
+    tableHolder.appendChild(standingsTable(standings, "No common matches yet."));
+  }
+  renderPartial();
+  root.appendChild(section);
 }
