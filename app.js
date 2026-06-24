@@ -12,6 +12,7 @@ const renderers = { predict: renderPredict, leaderboard: renderLeaderboard, admi
 let activeTab = "predict";
 let data = null;
 let unsavedCheck = () => false;
+let viewCleanup = () => {}; // teardown for the current view (e.g. kickoff timers)
 let actingAs = null;    // admin impersonation: name to act as, or null = self
 let unlockPast = false; // admin: bypass kickoff lock to fill past predictions
 
@@ -72,6 +73,7 @@ function ctx() {
   return {
     data, player: actingPlayer(), isAdmin: isAdmin(), refresh, rerender: renderActive, setStatus,
     setUnsavedCheck: (fn) => { unsavedCheck = fn; },
+    registerCleanup: (fn) => { viewCleanup = fn; },
     adminUnlockPast: unlockPast,
     setUnlockPast: (b) => withUnsavedGuard(() => { unlockPast = b; renderActive(); }),
     setActingAs: (name) => withUnsavedGuard(() => {
@@ -84,6 +86,8 @@ function ctx() {
 
 function renderActive() {
   if (!data) return;
+  viewCleanup();              // tear down the outgoing view (clears kickoff timers)
+  viewCleanup = () => {};
   document.querySelectorAll("nav button").forEach((b) =>
     b.classList.toggle("active", b.dataset.tab === activeTab));
   viewRoot.innerHTML = "";

@@ -139,6 +139,30 @@ export function renderBatchGrid(root, ctx, opts) {
     root.appendChild(details);
   });
 
+  // Live-lock: if the page is left open when a match kicks off, disable its
+  // inputs at that moment. We re-check opts.lockedFor at the timer so the rule
+  // matches render-time locking (predict locks at kickoff; admin never locks,
+  // and the admin "fill past" toggle re-renders, rescheduling). Any unsaved
+  // edit is reverted to the saved baseline so it can't be submitted late.
+  const MAX_TIMEOUT = 2147483647; // setTimeout overflows past ~24.8 days
+  const timers = [];
+  function lockEntry(e) {
+    e.home.value = e.baseline ? e.baseline.homeGoals : "";
+    e.away.value = e.baseline ? e.baseline.awayGoals : "";
+    e.home.disabled = e.away.disabled = true;
+    e.card.classList.add("locked");
+    recompute();
+    ctx.setStatus("A match kicked off — its inputs are now locked.");
+  }
+  for (const e of entries) {
+    if (e.home.disabled) continue; // already locked at render
+    const ms = Date.parse(e.fx.kickoff) - Date.now();
+    if (ms > 0 && ms <= MAX_TIMEOUT) {
+      timers.push(setTimeout(() => { if (opts.lockedFor(e.fx)) lockEntry(e); }, ms));
+    }
+  }
+  if (ctx.registerCleanup) ctx.registerCleanup(() => timers.forEach(clearTimeout));
+
   ctx.setUnsavedCheck(() => summarizeEdits(snapshot()).dirtyCount > 0);
   recompute();
 }
