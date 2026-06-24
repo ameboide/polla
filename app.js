@@ -33,8 +33,10 @@ function isAdmin() {
 function renderIdentity() {
   const player = getPlayer();
   identityEl.textContent = player ? `Hi, ${player}` : "";
+  // Admin tab stays visible for everyone; clicking it prompts for the code
+  // (see selectTab). Show a lock hint until unlocked.
   const adminBtn = document.querySelector('nav button[data-tab="admin"]');
-  adminBtn.classList.toggle("hidden", !isAdmin());
+  adminBtn.textContent = isAdmin() ? "Admin" : "Admin 🔒";
 }
 
 async function refresh() {
