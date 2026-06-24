@@ -2,45 +2,96 @@ import { effectiveResults } from "./leaderboard.js";
 import { flagFor } from "./flags.js";
 import { setSim, getSim, clearSims, simResults } from "./sim-store.js";
 
+// Head-to-head mini-table among a set of tied teams: points/goals counted only
+// from matches played between those teams.
+function headToHead(tiedNames, matches) {
+  const stat = new Map([...tiedNames].map((n) => [n, { points: 0, gf: 0, ga: 0 }]));
+  for (const m of matches) {
+    if (!tiedNames.has(m.home) || !tiedNames.has(m.away)) continue;
+    const h = stat.get(m.home);
+    const a = stat.get(m.away);
+    h.gf += m.homeGoals; h.ga += m.awayGoals;
+    a.gf += m.awayGoals; a.ga += m.homeGoals;
+    if (m.homeGoals > m.awayGoals) h.points += 3;
+    else if (m.homeGoals < m.awayGoals) a.points += 3;
+    else { h.points += 1; a.points += 1; }
+  }
+  return stat;
+}
+
+// Official 2026 tiebreakers: overall points, then (among teams still level) the
+// head-to-head mini-table — points, goal difference, goals scored — then overall
+// goal difference and goals scored. Fair-play (cards) and FIFA ranking come next
+// officially, but fixtures carry no card/ranking data, so we stop there and use
+// the team name as a deterministic final fallback.
+// (Head-to-head uses one mini-table over the whole tied set; it does not
+// recursively re-split a partially separated tie.)
+function sortStandings(teams, matches) {
+  teams.sort((a, b) => b.points - a.points);
+  const out = [];
+  for (let i = 0; i < teams.length;) {
+    let j = i;
+    while (j < teams.length && teams[j].points === teams[i].points) j++;
+    const tied = teams.slice(i, j);
+    if (tied.length > 1) {
+      const h2h = headToHead(new Set(tied.map((t) => t.team)), matches);
+      tied.sort((x, y) => {
+        const hx = h2h.get(x.team);
+        const hy = h2h.get(y.team);
+        return (hy.points - hx.points)
+          || ((hy.gf - hy.ga) - (hx.gf - hx.ga))
+          || (hy.gf - hx.gf)
+          || (y.gd - x.gd)
+          || (y.gf - x.gf)
+          || x.team.localeCompare(y.team);
+      });
+    }
+    out.push(...tied);
+    i = j;
+  }
+  return out;
+}
+
 // Standard football table for each group: 3 points a win, 1 a draw. Only matches
 // with an effective result (admin entry or fixture's real score) count as played.
-// Every team is listed even before kickoff. Sorted by points, then goal
-// difference, then goals for, then name.
+// Every team is listed even before kickoff. See sortStandings for tiebreakers.
 export function groupStandings(fixtures, results) {
   const eff = new Map(effectiveResults(fixtures, results).map((r) => [r.matchId, r]));
   const groups = new Map();
-  const ensure = (group, team) => {
-    if (!groups.has(group)) groups.set(group, new Map());
-    const g = groups.get(group);
-    if (!g.has(team)) {
-      g.set(team, { team, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 });
+  const ensureGroup = (g) => {
+    if (!groups.has(g)) groups.set(g, { teams: new Map(), matches: [] });
+    return groups.get(g);
+  };
+  const ensureTeam = (G, team) => {
+    if (!G.teams.has(team)) {
+      G.teams.set(team, { team, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 });
     }
-    return g.get(team);
+    return G.teams.get(team);
   };
 
   for (const fx of fixtures) {
     if (fx.group == null) continue;
-    ensure(fx.group, fx.home);
-    ensure(fx.group, fx.away);
+    const G = ensureGroup(fx.group);
+    ensureTeam(G, fx.home);
+    ensureTeam(G, fx.away);
     const r = eff.get(fx.id);
     if (!r) continue;
-    const h = ensure(fx.group, fx.home);
-    const a = ensure(fx.group, fx.away);
+    const h = ensureTeam(G, fx.home);
+    const a = ensureTeam(G, fx.away);
     h.played++; a.played++;
     h.gf += r.homeGoals; h.ga += r.awayGoals;
     a.gf += r.awayGoals; a.ga += r.homeGoals;
     if (r.homeGoals > r.awayGoals) { h.won++; a.lost++; h.points += 3; }
     else if (r.homeGoals < r.awayGoals) { a.won++; h.lost++; a.points += 3; }
-    else { h.drawn++; a.drawn++; h.points++; a.points++; }
+    else { h.drawn++; a.drawn++; h.points += 1; a.points += 1; }
+    G.matches.push({ home: fx.home, away: fx.away, homeGoals: r.homeGoals, awayGoals: r.awayGoals });
   }
 
   return [...groups.entries()]
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([group, teams]) => ({
+    .map(([group, G]) => ({
       group,
-      standings: [...teams.values()]
-        .map((t) => ({ ...t, gd: t.gf - t.ga }))
-        .sort((x, y) => y.points - x.points || y.gd - x.gd || y.gf - x.gf || x.team.localeCompare(y.team)),
+      standings: sortStandings([...G.teams.values()].map((t) => ({ ...t, gd: t.gf - t.ga })), G.matches),
     }));
 }
 

@@ -19,6 +19,23 @@ test("groupStandings tallies P/W/D/L, goals, GD and 3-1-0 points, sorted", () =>
   ]);
 });
 
+test("head-to-head beats overall goal difference for teams level on points", () => {
+  // T1 and T2 both finish on 6 pts. T2 has the better overall GD (+6 vs +3),
+  // but T1 won the head-to-head, so T1 must rank first.
+  const fixtures = [
+    { id: "m1", group: "A", home: "T1", away: "T2", result: { homeGoals: 1, awayGoals: 0 } }, // T1 beats T2
+    { id: "m2", group: "A", home: "T1", away: "T3", result: { homeGoals: 0, awayGoals: 1 } },
+    { id: "m3", group: "A", home: "T1", away: "T4", result: { homeGoals: 3, awayGoals: 0 } },
+    { id: "m4", group: "A", home: "T2", away: "T3", result: { homeGoals: 5, awayGoals: 0 } },
+    { id: "m5", group: "A", home: "T2", away: "T4", result: { homeGoals: 2, awayGoals: 0 } },
+    { id: "m6", group: "A", home: "T3", away: "T4", result: { homeGoals: 0, awayGoals: 0 } },
+  ];
+  const [groupA] = groupStandings(fixtures, []);
+  const top2 = groupA.standings.slice(0, 2).map((t) => t.team);
+  assert.deepEqual(top2, ["T1", "T2"]); // T1 first despite T2's superior overall GD
+  assert.ok(groupA.standings[1].gd > groupA.standings[0].gd); // confirm GD was the loser here
+});
+
 test("groupStandings lists every team even before any match is played, and sorts groups", () => {
   const fixtures = [
     { id: "x1", group: "B", home: "Spain", away: "Brazil" },
