@@ -9,9 +9,11 @@ export function renderPredict(root, ctx) {
   const { data, player } = ctx;
   if (!player) { root.textContent = "Set your name to predict."; return; }
 
+  const scoresOf = (rec) => (rec ? { homeGoals: rec.homeGoals, awayGoals: rec.awayGoals } : null);
   renderBatchGrid(root, ctx, {
     fixtures: data.fixtures,
     existingFor: (fx) => findPrediction(data.predictions, player, fx.id),
+    baselineFor: (fx) => scoresOf(findPrediction(data.predictions, player, fx.id)),
     lockedFor: (fx) => Date.now() >= Date.parse(fx.kickoff),
     save: (existing, fields) => savePrediction(existing, fields),
     buildFields: (fx, score) => ({ player, matchId: fx.id, ...score }),

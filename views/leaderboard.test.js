@@ -1,8 +1,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeStandings } from "./leaderboard.js";
+import { computeStandings, effectiveResults } from "./leaderboard.js";
 
 const cfg = { winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1 };
+
+test("effectiveResults prefers admin result over the fixture default", () => {
+  const fixtures = [
+    { id: "m1", result: { homeGoals: 1, awayGoals: 0 } }, // has real result
+    { id: "m2", result: { homeGoals: 3, awayGoals: 3 } }, // admin will override
+    { id: "m3" },                                          // not played, no result
+  ];
+  const adminResults = [{ matchId: "m2", homeGoals: 2, awayGoals: 0 }];
+  const eff = effectiveResults(fixtures, adminResults);
+  assert.deepEqual(eff, [
+    { matchId: "m1", homeGoals: 1, awayGoals: 0 }, // fixture default
+    { matchId: "m2", homeGoals: 2, awayGoals: 0 }, // admin override
+  ]); // m3 omitted (no result anywhere)
+});
 
 test("sums points per player and sorts desc", () => {
   const predictions = [

@@ -1,5 +1,19 @@
 import { score } from "../scoring.js";
 
+// The result used for scoring a match: the admin's entered result if present,
+// otherwise the fixture's real result baked into fixtures.json. Matches with
+// neither are simply omitted (treated as not yet played).
+export function effectiveResults(fixtures, adminResults) {
+  const byMatch = new Map(adminResults.map((r) => [r.matchId, r]));
+  const out = [];
+  for (const fx of fixtures) {
+    const admin = byMatch.get(fx.id);
+    if (admin) out.push({ matchId: fx.id, homeGoals: admin.homeGoals, awayGoals: admin.awayGoals });
+    else if (fx.result) out.push({ matchId: fx.id, homeGoals: fx.result.homeGoals, awayGoals: fx.result.awayGoals });
+  }
+  return out;
+}
+
 export function computeStandings(predictions, results, config) {
   const resultByMatch = new Map(results.map((r) => [r.matchId, r]));
   const totals = new Map();
@@ -14,8 +28,8 @@ export function computeStandings(predictions, results, config) {
 }
 
 export function renderLeaderboard(root, ctx) {
-  const { predictions, results, config } = ctx.data;
-  const standings = computeStandings(predictions, results, config);
+  const { fixtures, predictions, results, config } = ctx.data;
+  const standings = computeStandings(predictions, effectiveResults(fixtures, results), config);
   const table = document.createElement("table");
   table.innerHTML = "<thead><tr><th>#</th><th>Player</th><th>Points</th></tr></thead>";
   const body = document.createElement("tbody");

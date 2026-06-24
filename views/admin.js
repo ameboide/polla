@@ -41,9 +41,17 @@ function configForm(ctx, registerDirty) {
 
 function resultsSection(root, ctx) {
   root.appendChild(Object.assign(document.createElement("h3"), { textContent: "Actual results" }));
+  const adminResult = (fx) => ctx.data.results.find((r) => r.matchId === fx.id) || null;
   renderBatchGrid(root, ctx, {
     fixtures: ctx.data.fixtures,
-    existingFor: (fx) => ctx.data.results.find((r) => r.matchId === fx.id) || null,
+    existingFor: adminResult,
+    // Prefill with the admin's saved result, else the fixture's real score
+    // (from fixtures.json) so unentered matches show their actual result.
+    baselineFor: (fx) => {
+      const r = adminResult(fx);
+      if (r) return { homeGoals: r.homeGoals, awayGoals: r.awayGoals };
+      return fx.result ? { homeGoals: fx.result.homeGoals, awayGoals: fx.result.awayGoals } : null;
+    },
     lockedFor: () => false,
     save: (existing, fields) => saveResult(existing, fields),
     buildFields: (fx, score) => ({ matchId: fx.id, ...score }),

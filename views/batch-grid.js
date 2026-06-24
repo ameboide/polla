@@ -8,7 +8,11 @@ import { summarizeEdits, isDirty } from "./editing.js";
 //
 // opts:
 //   fixtures        — array of fixtures to render
-//   existingFor(fx) — the saved record for fx (with homeGoals/awayGoals) or null
+//   existingFor(fx) — saved record to upsert against (carries the id) or null
+//   baselineFor(fx) — {homeGoals,awayGoals} shown by default and used as the
+//                     dirty baseline, or null. May differ from existingFor:
+//                     e.g. a fixture's real result prefilled before any admin
+//                     record exists (editing it then CREATES a record).
 //   lockedFor(fx)   — bool; locked inputs are disabled and never dirty
 //   save(existing, fields) — upsert one record, returns a promise
 //   buildFields(fx, score) — {homeGoals,awayGoals} -> the payload to save
@@ -75,9 +79,7 @@ export function renderBatchGrid(root, ctx, opts) {
 
     day.fixtures.forEach((fx) => {
       const existing = opts.existingFor(fx);
-      const baseline = existing
-        ? { homeGoals: existing.homeGoals, awayGoals: existing.awayGoals }
-        : null;
+      const baseline = opts.baselineFor(fx);
       const locked = opts.lockedFor(fx);
 
       const card = document.createElement("div");
@@ -87,9 +89,9 @@ export function renderBatchGrid(root, ctx, opts) {
       }));
 
       const home = document.createElement("input");
-      home.type = "number"; home.min = "0"; home.value = existing ? existing.homeGoals : "";
+      home.type = "number"; home.min = "0"; home.value = baseline ? baseline.homeGoals : "";
       const away = document.createElement("input");
-      away.type = "number"; away.min = "0"; away.value = existing ? existing.awayGoals : "";
+      away.type = "number"; away.min = "0"; away.value = baseline ? baseline.awayGoals : "";
       home.disabled = away.disabled = locked;
       if (!locked) {
         home.addEventListener("input", recompute);
