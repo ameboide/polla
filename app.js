@@ -98,15 +98,31 @@ function renderActive() {
   renderers[activeTab](viewRoot, ctx());
 }
 
-function selectTab(tab) {
-  if (tab === activeTab) return;
-  if (unsavedCheck() && !confirm("You have unsaved changes. Leave without saving?")) return;
+// The active tab lives in the URL hash (#leaderboard, #bracket, …) so a refresh
+// or a shared link reopens the same panel.
+function hashTab() {
+  const t = location.hash.replace(/^#/, "");
+  return renderers[t] ? t : null;
+}
+function setHash(tab) {
+  if (location.hash.replace(/^#/, "") !== tab) location.hash = tab;
+}
+
+// fromHash: the change originated from the URL (hashchange / initial load), so
+// the hash is already correct and we only revert it when a switch is refused.
+function selectTab(tab, fromHash = false) {
+  if (tab === activeTab) { setHash(tab); return; }
+  if (unsavedCheck() && !confirm("You have unsaved changes. Leave without saving?")) {
+    setHash(activeTab); // keep the URL on the panel we stayed on
+    return;
+  }
   if (tab === "admin" && !isAdmin()) {
     const code = (prompt("Admin code:") || "").trim();
     if (code === ADMIN_SECRET) { localStorage.setItem("polla.admin", "1"); renderIdentity(); }
-    else { setStatus("Wrong admin code", true); return; }
+    else { setStatus("Wrong admin code", true); setHash(activeTab); return; }
   }
   activeTab = tab;
+  setHash(tab);
   renderActive();
 }
 
@@ -116,6 +132,16 @@ window.addEventListener("beforeunload", (e) => {
 
 document.querySelectorAll("nav button").forEach((b) =>
   b.addEventListener("click", () => selectTab(b.dataset.tab)));
+
+window.addEventListener("hashchange", () => {
+  const t = hashTab();
+  if (t) selectTab(t, true);
+});
+
+// Open the tab named in the URL hash (if any); otherwise seed the hash.
+const initialTab = hashTab();
+if (initialTab) activeTab = initialTab;
+else setHash(activeTab);
 
 renderIdentity();
 refresh();
