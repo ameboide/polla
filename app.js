@@ -11,6 +11,7 @@ const identityEl = document.getElementById("identity");
 const renderers = { predict: renderPredict, leaderboard: renderLeaderboard, admin: renderAdmin };
 let activeTab = "predict";
 let data = null;
+let unsavedCheck = () => false;
 
 function setStatus(msg, isError = false) {
   statusEl.textContent = msg || "";
@@ -51,7 +52,10 @@ async function refresh() {
 }
 
 function ctx() {
-  return { data, player: getPlayer(), isAdmin: isAdmin(), refresh, setStatus };
+  return {
+    data, player: getPlayer(), isAdmin: isAdmin(), refresh, setStatus,
+    setUnsavedCheck: (fn) => { unsavedCheck = fn; },
+  };
 }
 
 function renderActive() {
@@ -59,10 +63,13 @@ function renderActive() {
   document.querySelectorAll("nav button").forEach((b) =>
     b.classList.toggle("active", b.dataset.tab === activeTab));
   viewRoot.innerHTML = "";
+  unsavedCheck = () => false; // the view re-registers if it tracks edits
   renderers[activeTab](viewRoot, ctx());
 }
 
 function selectTab(tab) {
+  if (tab === activeTab) return;
+  if (unsavedCheck() && !confirm("You have unsaved changes. Leave without saving?")) return;
   if (tab === "admin" && !isAdmin()) {
     const code = (prompt("Admin code:") || "").trim();
     if (code === ADMIN_SECRET) { localStorage.setItem("polla.admin", "1"); renderIdentity(); }
@@ -71,6 +78,10 @@ function selectTab(tab) {
   activeTab = tab;
   renderActive();
 }
+
+window.addEventListener("beforeunload", (e) => {
+  if (unsavedCheck()) { e.preventDefault(); e.returnValue = ""; }
+});
 
 document.querySelectorAll("nav button").forEach((b) =>
   b.addEventListener("click", () => selectTab(b.dataset.tab)));
