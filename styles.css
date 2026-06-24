@@ -33,6 +33,13 @@ th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #eee; }
 .admin-tools { border: 1px dashed #0a3d62; border-radius: 6px; padding: .5rem .75rem; margin-bottom: .75rem; background: #f0f4f8; font-size: .9rem; }
 .admin-tools input[list] { width: 10rem; }
 .admin-tools button { margin-left: .25rem; }
+.group { margin-bottom: 1.5rem; }
+.group h2 { font-size: 1.1rem; margin: 0 0 .4rem; }
+.group-table th, .group-table td { text-align: right; padding: .3rem .4rem; }
+.group-table th:first-child, .group-table td:first-child { text-align: left; }
+.group-table .pts { font-weight: 600; }
+.group-matches { list-style: none; padding: 0; margin: .5rem 0 0; font-size: .9rem; color: #444; }
+.group-matches li { padding: .2rem 0; border-bottom: 1px solid #f0f0f0; }
 .partial-leaderboard { margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; }
 .partial-leaderboard h2 { font-size: 1.1rem; margin: 0 0 .25rem; }
 .partial-note { font-size: .85rem; color: #555; margin: 0 0 .5rem; }

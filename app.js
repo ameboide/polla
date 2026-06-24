@@ -3,13 +3,14 @@ import { loadAll } from "./store.js";
 import { renderPredict } from "./views/predict.js";
 import { renderLeaderboard } from "./views/leaderboard.js";
 import { renderPlayed } from "./views/played.js";
+import { renderGroups } from "./views/groups.js";
 import { renderAdmin } from "./views/admin.js";
 
 const viewRoot = document.getElementById("view");
 const statusEl = document.getElementById("status");
 const identityEl = document.getElementById("identity");
 
-const renderers = { predict: renderPredict, leaderboard: renderLeaderboard, played: renderPlayed, admin: renderAdmin };
+const renderers = { predict: renderPredict, leaderboard: renderLeaderboard, groups: renderGroups, played: renderPlayed, admin: renderAdmin };
 let activeTab = "predict";
 let data = null;
 let unsavedCheck = () => false;
