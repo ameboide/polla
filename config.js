@@ -1,9 +1,9 @@
-// restdb.io config. Fill API_BASE + API_KEY with your own database values.
-// API_BASE is your DB's REST root, e.g. https://yourdb-abcd.restdb.io/rest
-// API_KEY must be a CORS-enabled key (restdb: Settings → API keys → enable CORS).
-export const API_BASE = "https://polla-a9dc.restdb.io/rest";
-export const API_KEY = "6a3b35043322de66e65fe33d";
-export const ADMIN_SECRET = "pollo";
+// Supabase config. SUPABASE_URL + SUPABASE_ANON_KEY come from your project's
+// Settings → API. The anon key is public by design — safe to ship because
+// Row-Level Security governs access (see config.example.js for the SQL).
+export const SUPABASE_URL = "https://kljyczhzwlzamuquoksy.supabase.co";
+export const SUPABASE_ANON_KEY = "sb_publishable_doJ7sgIaQoFKcU2CrWvp-A_UCX29z6h";
+export const ADMIN_SECRET = "pollo"; // client-side code that unlocks the Admin tab
 export const COLLECTIONS = {
   predictions: "predictions",
   results: "results",

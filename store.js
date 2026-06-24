@@ -11,9 +11,9 @@ export function resolveConfig(records) {
 }
 
 // Scoring config changes almost never, but a GET for it ran on every page load
-// (1 of 3 calls) — costly against restdb's free request cap. Cache it in
-// localStorage with a short TTL so most loads skip that GET; admin saves write
-// through (see cacheConfig) so the editor never sees a stale value.
+// (1 of 3 calls). Cache it in localStorage with a short TTL so most loads skip
+// that GET, cutting requests and load latency; admin saves write through (see
+// cacheConfig) so the editor never sees a stale value.
 const CONFIG_CACHE_KEY = "polla.config.cache";
 const CONFIG_TTL_MS = 5 * 60 * 1000;
 
