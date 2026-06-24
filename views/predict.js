@@ -6,9 +6,47 @@ function findPrediction(predictions, player, matchId) {
   return predictions.find((p) => p.player === player && p.matchId === matchId) || null;
 }
 
+function adminToolbar(root, ctx) {
+  const { data, player } = ctx;
+  const panel = document.createElement("div");
+  panel.className = "admin-tools";
+
+  const lbl = document.createElement("label");
+  const cb = document.createElement("input");
+  cb.type = "checkbox"; cb.checked = ctx.adminUnlockPast;
+  cb.addEventListener("change", () => {
+    if (!ctx.setUnlockPast(cb.checked)) cb.checked = ctx.adminUnlockPast; // reverted on cancel
+  });
+  lbl.append(cb, " Fill past predictions");
+
+  const players = [...new Set(data.predictions.map((p) => p.player))].sort();
+  const dl = document.createElement("datalist");
+  dl.id = "known-players";
+  players.forEach((n) => dl.appendChild(Object.assign(document.createElement("option"), { value: n })));
+
+  const inp = document.createElement("input");
+  inp.setAttribute("list", "known-players");
+  inp.placeholder = "player name";
+  inp.value = player;
+
+  const actBtn = document.createElement("button");
+  actBtn.textContent = "Act as";
+  actBtn.addEventListener("click", () => {
+    if (inp.value.trim() && !ctx.setActingAs(inp.value)) inp.value = player; // revert if guard cancelled
+  });
+
+  const meBtn = document.createElement("button");
+  meBtn.textContent = "Me";
+  meBtn.addEventListener("click", () => ctx.setActingAs(null));
+
+  panel.append(lbl, document.createElement("br"), "Act as: ", inp, " ", actBtn, " ", meBtn, dl);
+  root.appendChild(panel);
+}
+
 export function renderPredict(root, ctx) {
   const { data, player } = ctx;
   if (!player) { root.textContent = "Set your name to predict."; return; }
+  if (ctx.isAdmin) adminToolbar(root, ctx);
 
   const resultByMatch = new Map(
     effectiveResults(data.fixtures, data.results).map((r) => [r.matchId, r])
@@ -20,7 +58,7 @@ export function renderPredict(root, ctx) {
     fixtures: data.fixtures,
     existingFor: (fx) => findPrediction(data.predictions, player, fx.id),
     baselineFor: (fx) => scoresOf(findPrediction(data.predictions, player, fx.id)),
-    lockedFor: (fx) => Date.now() >= Date.parse(fx.kickoff),
+    lockedFor: (fx) => !ctx.adminUnlockPast && Date.now() >= Date.parse(fx.kickoff),
     save: (existing, fields) => savePrediction(existing, fields),
     buildFields: (fx, score) => ({ player, matchId: fx.id, ...score }),
     resultFor: (fx) => resultByMatch.get(fx.id) || null,

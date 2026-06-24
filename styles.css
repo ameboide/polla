@@ -24,3 +24,6 @@ th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #eee; }
 .match.dirty { border-left: 4px solid #f1c40f; background: #fffdf3; }
 .result-info { font-size: .85rem; color: #555; margin-top: .35rem; }
 .total-banner { font-weight: 600; padding: .35rem 0; font-size: 1.05rem; }
+.admin-tools { border: 1px dashed #0a3d62; border-radius: 6px; padding: .5rem .75rem; margin-bottom: .75rem; background: #f0f4f8; font-size: .9rem; }
+.admin-tools input[list] { width: 10rem; }
+.admin-tools button { margin-left: .25rem; }

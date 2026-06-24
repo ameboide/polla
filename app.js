@@ -12,6 +12,8 @@ const renderers = { predict: renderPredict, leaderboard: renderLeaderboard, admi
 let activeTab = "predict";
 let data = null;
 let unsavedCheck = () => false;
+let actingAs = null;    // admin impersonation: name to act as, or null = self
+let unlockPast = false; // admin: bypass kickoff lock to fill past predictions
 
 function setStatus(msg, isError = false) {
   statusEl.textContent = msg || "";
@@ -31,13 +33,28 @@ function isAdmin() {
   return localStorage.getItem("polla.admin") === "1";
 }
 
+// Effective player: the impersonated name if an admin set one, else self.
+function actingPlayer() {
+  return actingAs || getPlayer();
+}
+
 function renderIdentity() {
-  const player = getPlayer();
-  identityEl.textContent = player ? `Hi, ${player}` : "";
+  const self = getPlayer();
+  identityEl.textContent = self
+    ? (actingAs && actingAs !== self ? `Hi, ${self} — acting as ${actingAs}` : `Hi, ${self}`)
+    : "";
   // Admin tab stays visible for everyone; clicking it prompts for the code
   // (see selectTab). Show a lock hint until unlocked.
   const adminBtn = document.querySelector('nav button[data-tab="admin"]');
   adminBtn.textContent = isAdmin() ? "Admin" : "Admin 🔒";
+}
+
+// Run fn only after clearing any unsaved edits (re-rendering discards them).
+// Returns whether it ran, so callers can revert a toggled control on cancel.
+function withUnsavedGuard(fn) {
+  if (unsavedCheck() && !confirm("Discard unsaved changes?")) return false;
+  fn();
+  return true;
 }
 
 async function refresh() {
@@ -53,8 +70,15 @@ async function refresh() {
 
 function ctx() {
   return {
-    data, player: getPlayer(), isAdmin: isAdmin(), refresh, setStatus,
+    data, player: actingPlayer(), isAdmin: isAdmin(), refresh, setStatus,
     setUnsavedCheck: (fn) => { unsavedCheck = fn; },
+    adminUnlockPast: unlockPast,
+    setUnlockPast: (b) => withUnsavedGuard(() => { unlockPast = b; renderActive(); }),
+    setActingAs: (name) => withUnsavedGuard(() => {
+      actingAs = name ? name.trim() || null : null;
+      renderIdentity();
+      renderActive();
+    }),
   };
 }
 
