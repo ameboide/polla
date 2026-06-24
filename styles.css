@@ -16,6 +16,9 @@ th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #eee; }
 #status { position: fixed; bottom: 1rem; right: 1rem; }
 #status.error { color: #b00; }
 .hidden { display: none; }
+.group-toolbar { margin-bottom: .5rem; }
+.collapse-all { padding: .3rem .7rem; cursor: pointer; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; font-size: .85rem; }
+.collapse-all:disabled { opacity: .4; cursor: default; }
 .day { margin-bottom: .5rem; border: 1px solid #ddd; border-radius: 6px; }
 .day > summary { cursor: pointer; padding: .6rem .75rem; font-weight: 600; background: #f0f4f8; border-radius: 6px; user-select: none; }
 .day[open] > summary { border-bottom: 1px solid #ddd; border-radius: 6px 6px 0 0; }

@@ -1,6 +1,7 @@
 import { groupFixturesByDay } from "./grouping.js";
 import { summarizeEdits, isDirty } from "./editing.js";
 import { flagFor } from "./flags.js";
+import { makeCollapseAllControl } from "./collapse-all.js";
 
 // Renders a day-grouped grid of score inputs with one batch "Save" bar.
 // Edits are tracked against each fixture's saved baseline; dirty cards are
@@ -36,6 +37,12 @@ export function renderBatchGrid(root, ctx, opts) {
   const button = document.createElement("button");
   bar.appendChild(button);
   root.appendChild(bar);
+
+  const collapseAll = makeCollapseAllControl(root);
+  const toolbar = document.createElement("div");
+  toolbar.className = "group-toolbar";
+  toolbar.appendChild(collapseAll.btn);
+  root.appendChild(toolbar);
 
   const snapshot = () =>
     entries.map((e) => ({
@@ -164,5 +171,6 @@ export function renderBatchGrid(root, ctx, opts) {
   if (ctx.registerCleanup) ctx.registerCleanup(() => timers.forEach(clearTimeout));
 
   ctx.setUnsavedCheck(() => summarizeEdits(snapshot()).dirtyCount > 0);
+  collapseAll.sync();
   recompute();
 }
