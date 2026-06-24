@@ -34,9 +34,10 @@ test("an incomplete group keeps the criterion with the provisional occupant", ()
   assert.deepEqual(slotsOf(rounds, 73)[1], { defined: false, label: "2B", team: "B2" });
 });
 
-test("third-place and match-feed slots are undefined criteria with no team", () => {
+test("third-place and match-feed slots are undefined criteria", () => {
   const rounds = buildBracket([...groupA, ...groupB], []);
-  assert.deepEqual(slotsOf(rounds, 74)[1], { defined: false, label: "3rd A/B/C/D/F" });
+  // Match 77's third allows C/D/F/G/H — none complete here, so it stays empty.
+  assert.deepEqual(slotsOf(rounds, 77)[1], { defined: false, label: "3rd C/D/F/G/H", team: undefined });
   assert.deepEqual(slotsOf(rounds, 89)[0], { defined: false, label: "Winner 74" });
   assert.deepEqual(slotsOf(rounds, 103)[0], { defined: false, label: "Loser 101" });
 });
@@ -50,6 +51,57 @@ test("displayOrder lays each round out along the bracket tree, not by match numb
   assert.deepEqual(order["Round of 16"], [89, 90, 93, 94, 91, 92, 95, 96]);
   assert.deepEqual(order["Quarter-finals"], [97, 98, 99, 100]);
   assert.deepEqual(order["Final"], [104]);
+});
+
+test("simulations move the provisional team but the slot stays undefined", () => {
+  // Group B: full round-robin, all UNPLAYED (no results). Simulate B1 winning.
+  const groupBsim = [
+    { id: "s1", group: "B", home: "B1", away: "B2" },
+    { id: "s2", group: "B", home: "B3", away: "B4" },
+    { id: "s3", group: "B", home: "B1", away: "B3" },
+    { id: "s4", group: "B", home: "B2", away: "B4" },
+    { id: "s5", group: "B", home: "B1", away: "B4" },
+    { id: "s6", group: "B", home: "B2", away: "B3" },
+  ];
+  const sims = [
+    { matchId: "s1", homeGoals: 1, awayGoals: 0 }, // B1 beats B2
+    { matchId: "s3", homeGoals: 1, awayGoals: 0 }, // B1 beats B3
+    { matchId: "s5", homeGoals: 1, awayGoals: 0 }, // B1 beats B4 -> B1 1st
+    { matchId: "s4", homeGoals: 1, awayGoals: 0 }, // B2 beats B4
+    { matchId: "s6", homeGoals: 1, awayGoals: 0 }, // B2 beats B3 -> B2 2nd
+  ];
+  const rounds = buildBracket(groupBsim, [], sims);
+  // Match 85 = Winner B, Match 73 slot 2 = Runner-up B
+  assert.deepEqual(slotsOf(rounds, 85)[0], { defined: false, label: "1B", team: "B1" });
+  assert.deepEqual(slotsOf(rounds, 73)[1], { defined: false, label: "2B", team: "B2" });
+});
+
+test("a fully simulated group fills a third-place slot (greyed) with its 3rd team", () => {
+  const groupB = [
+    { id: "s1", group: "B", home: "B1", away: "B2" },
+    { id: "s2", group: "B", home: "B3", away: "B4" },
+    { id: "s3", group: "B", home: "B1", away: "B3" },
+    { id: "s4", group: "B", home: "B2", away: "B4" },
+    { id: "s5", group: "B", home: "B1", away: "B4" },
+    { id: "s6", group: "B", home: "B2", away: "B3" },
+  ];
+  // B1 wins all, B2 second, B3 third, B4 last.
+  const sims = [
+    { matchId: "s1", homeGoals: 1, awayGoals: 0 },
+    { matchId: "s2", homeGoals: 1, awayGoals: 0 },
+    { matchId: "s3", homeGoals: 1, awayGoals: 0 },
+    { matchId: "s4", homeGoals: 1, awayGoals: 0 },
+    { matchId: "s5", homeGoals: 1, awayGoals: 0 },
+    { matchId: "s6", homeGoals: 1, awayGoals: 0 },
+  ];
+  const rounds = buildBracket(groupB, [], sims);
+  // Match 74's third slot allows groups A/B/C/D/F; only B is complete -> gets B3.
+  assert.deepEqual(slotsOf(rounds, 74)[1], { defined: false, label: "3rd A/B/C/D/F", team: "B3" });
+});
+
+test("third-place slots stay empty when no group is complete", () => {
+  const rounds = buildBracket(groupA.map((m) => ({ ...m, result: undefined })), []);
+  assert.deepEqual(slotsOf(rounds, 74)[1], { defined: false, label: "3rd A/B/C/D/F", team: undefined });
 });
 
 test("admin results count toward group completion", () => {

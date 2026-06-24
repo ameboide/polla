@@ -54,6 +54,12 @@ th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #eee; }
 .group-table .pts { font-weight: 600; }
 .group-matches { list-style: none; padding: 0; margin: .5rem 0 0; font-size: .9rem; color: #444; }
 .group-matches li { padding: .2rem 0; border-bottom: 1px solid #f0f0f0; }
+.sim-row { display: flex; align-items: center; flex-wrap: wrap; gap: .2rem; }
+.sim-input { width: 2.5rem; }
+.sim-toolbar { margin-bottom: 1rem; }
+.sim-toolbar button { padding: .3rem .7rem; cursor: pointer; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; font-size: .85rem; }
+.sim-toolbar button:disabled { opacity: .4; cursor: default; }
+.sim-count { font-size: .85rem; color: #777; }
 .partial-leaderboard { margin-top: 2rem; border-top: 1px solid #ddd; padding-top: 1rem; }
 .partial-leaderboard h2 { font-size: 1.1rem; margin: 0 0 .25rem; }
 .partial-note { font-size: .85rem; color: #555; margin: 0 0 .5rem; }

@@ -1,5 +1,6 @@
 import { effectiveResults } from "./leaderboard.js";
 import { flagFor } from "./flags.js";
+import { setSim, getSim, clearSims, simResults } from "./sim-store.js";
 
 // Standard football table for each group: 3 points a win, 1 a draw. Only matches
 // with an effective result (admin entry or fixture's real score) count as played.
@@ -71,37 +72,92 @@ function standingsTable(standings) {
   return table;
 }
 
-function matchList(fixtures, group, eff) {
+// Build the match list for a group. Played matches show their real score;
+// unplayed ones get score inputs that write to the sim store. onSim is called
+// after each edit so the caller can refresh the standings table in place.
+function matchList(fixtures, group, realIds, onSim) {
   const list = document.createElement("ul");
   list.className = "group-matches";
   fixtures
     .filter((fx) => fx.group === group)
     .sort((a, b) => Date.parse(a.kickoff) - Date.parse(b.kickoff))
     .forEach((fx) => {
-      const r = eff.get(fx.id);
       const li = document.createElement("li");
-      li.textContent = r
-        ? `${flagFor(fx.home)} ${fx.home} ${r.homeGoals}-${r.awayGoals} ${fx.away} ${flagFor(fx.away)}`
-        : `${flagFor(fx.home)} ${fx.home} vs ${fx.away} ${flagFor(fx.away)} — not played`;
+      const real = realIds.get(fx.id);
+      if (real) {
+        li.textContent = `${flagFor(fx.home)} ${fx.home} ${real.homeGoals}-${real.awayGoals} ${fx.away} ${flagFor(fx.away)}`;
+      } else {
+        li.className = "sim-row";
+        const sim = getSim(fx.id);
+        const home = document.createElement("input");
+        const away = document.createElement("input");
+        [home, away].forEach((inp) => { inp.type = "number"; inp.min = "0"; inp.className = "sim-input"; });
+        home.value = sim ? sim.homeGoals : "";
+        away.value = sim ? sim.awayGoals : "";
+        const onInput = () => { setSim(fx.id, home.value, away.value); onSim(); };
+        home.addEventListener("input", onInput);
+        away.addEventListener("input", onInput);
+        li.append(
+          `${flagFor(fx.home)} ${fx.home} `, home,
+          document.createTextNode(" - "), away,
+          ` ${fx.away} ${flagFor(fx.away)}`,
+        );
+      }
       list.appendChild(li);
     });
   return list;
 }
 
 export function renderGroups(root, ctx) {
-  const { fixtures, results } = ctx.data;
-  const eff = new Map(effectiveResults(fixtures, results).map((r) => [r.matchId, r]));
-  const tables = groupStandings(fixtures, results);
-  if (!tables.length) {
+  const { fixtures, results, predictions } = ctx.data;
+  const player = ctx.player;
+  // Played = has a real (admin/fixture) result; only unplayed matches simulate.
+  const realIds = new Map(effectiveResults(fixtures, results).map((r) => [r.matchId, r]));
+  const unplayed = fixtures.filter((fx) => !realIds.has(fx.id));
+  // Standings recompute from real results plus the current simulations.
+  const standingsFor = (group) =>
+    (groupStandings(fixtures, results.concat(simResults())).find((g) => g.group === group) || {}).standings || [];
+
+  if (!fixtures.length) {
     root.appendChild(document.createTextNode("No groups to show."));
     return;
   }
-  tables.forEach(({ group, standings }) => {
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "sim-toolbar";
+  const fillBtn = document.createElement("button");
+  fillBtn.type = "button";
+  fillBtn.textContent = "Fill with my predictions";
+  fillBtn.disabled = !player;
+  fillBtn.addEventListener("click", () => {
+    unplayed.forEach((fx) => {
+      const p = predictions.find((x) => x.player === player && x.matchId === fx.id);
+      if (p) setSim(fx.id, p.homeGoals, p.awayGoals);
+    });
+    ctx.rerender();
+  });
+  const clearBtn = document.createElement("button");
+  clearBtn.type = "button";
+  clearBtn.textContent = "Clear simulations";
+  clearBtn.addEventListener("click", () => { clearSims(); ctx.rerender(); });
+  toolbar.append(fillBtn, " ", clearBtn);
+  if (simResults().length) {
+    toolbar.append(Object.assign(document.createElement("span"), {
+      className: "sim-count", textContent: ` ${simResults().length} simulated`,
+    }));
+  }
+  root.appendChild(toolbar);
+
+  groupStandings(fixtures, results.concat(simResults())).forEach(({ group }) => {
     const section = document.createElement("section");
     section.className = "group";
     section.appendChild(Object.assign(document.createElement("h2"), { textContent: `Group ${group}` }));
-    section.appendChild(standingsTable(standings));
-    section.appendChild(matchList(fixtures, group, eff));
+    const tableHolder = document.createElement("div");
+    tableHolder.appendChild(standingsTable(standingsFor(group)));
+    section.appendChild(tableHolder);
+    // Refresh just the table on each sim edit, keeping input focus.
+    const refresh = () => tableHolder.replaceChildren(standingsTable(standingsFor(group)));
+    section.appendChild(matchList(fixtures, group, realIds, refresh));
     root.appendChild(section);
   });
 }
