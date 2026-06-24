@@ -1,5 +1,15 @@
 * { box-sizing: border-box; }
-body { font-family: system-ui, sans-serif; margin: 0; color: #1a1a1a; }
+/* Windows Chrome has no country-flag emoji glyphs. This font supplies only the
+   flag glyphs; listing it first routes regional-indicator codepoints to it and
+   lets all other text fall through to the system fonts.
+   Font: Twemoji Country Flags, derived from Twemoji (© Twitter), CC-BY 4.0 —
+   see NOTICE.md. */
+@font-face {
+  font-family: "Twemoji Country Flags";
+  src: url("TwemojiCountryFlags.woff2") format("woff2");
+  font-display: swap;
+}
+body { font-family: "Twemoji Country Flags", system-ui, sans-serif; margin: 0; color: #1a1a1a; }
 header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #0a3d62; color: #fff; }
 nav { display: flex; gap: .5rem; padding: .5rem 1rem; border-bottom: 1px solid #ddd; }
 nav button { padding: .5rem 1rem; cursor: pointer; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; }
