@@ -14,6 +14,19 @@ export function effectiveResults(fixtures, adminResults) {
   return out;
 }
 
+// Points a single player earned per match: Map(matchId -> points). Only
+// includes matches that have an effective result AND a prediction by player.
+export function pointsByMatch(fixtures, predictions, results, config, player) {
+  const eff = new Map(effectiveResults(fixtures, results).map((r) => [r.matchId, r]));
+  const out = new Map();
+  for (const fx of fixtures) {
+    const r = eff.get(fx.id);
+    const p = predictions.find((x) => x.player === player && x.matchId === fx.id);
+    if (r && p) out.set(fx.id, score(p, r, config));
+  }
+  return out;
+}
+
 export function computeStandings(predictions, results, config) {
   const resultByMatch = new Map(results.map((r) => [r.matchId, r]));
   const totals = new Map();

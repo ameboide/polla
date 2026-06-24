@@ -16,8 +16,20 @@ import { summarizeEdits, isDirty } from "./editing.js";
 //   lockedFor(fx)   — bool; locked inputs are disabled and never dirty
 //   save(existing, fields) — upsert one record, returns a promise
 //   buildFields(fx, score) — {homeGoals,awayGoals} -> the payload to save
+// Optional read-only display hooks (omit to hide; admin omits all):
+//   resultFor(fx)   — actual {homeGoals,awayGoals} to show, or null
+//   pointsFor(fx)   — points earned on fx, or null
+//   dayPoints(fxs)  — subtotal shown in a day's header
+//   totalPoints()   — grand total shown in a banner above the grid
 export function renderBatchGrid(root, ctx, opts) {
   const entries = []; // {fx, existing, baseline, home, away, card}
+
+  if (opts.totalPoints) {
+    const banner = document.createElement("div");
+    banner.className = "total-banner";
+    banner.textContent = `Total: ${opts.totalPoints()} pts`;
+    root.appendChild(banner);
+  }
 
   const bar = document.createElement("div");
   bar.className = "save-bar";
@@ -74,7 +86,9 @@ export function renderBatchGrid(root, ctx, opts) {
     details.className = "day" + (day.isPast ? " past" : "");
     details.open = !day.isPast;
     const summary = document.createElement("summary");
-    summary.textContent = `${day.label} — ${day.fixtures.length} matches`;
+    let summaryText = `${day.label} — ${day.fixtures.length} matches`;
+    if (opts.dayPoints) summaryText += ` · ${opts.dayPoints(day.fixtures)} pts`;
+    summary.textContent = summaryText;
     details.appendChild(summary);
 
     day.fixtures.forEach((fx) => {
@@ -99,6 +113,18 @@ export function renderBatchGrid(root, ctx, opts) {
       }
 
       card.append(" ", home, " - ", away);
+
+      const result = opts.resultFor ? opts.resultFor(fx) : null;
+      if (result) {
+        const info = document.createElement("div");
+        info.className = "result-info";
+        let txt = `Actual: ${result.homeGoals}-${result.awayGoals}`;
+        const pts = opts.pointsFor ? opts.pointsFor(fx) : null;
+        if (pts !== null && pts !== undefined) txt += ` · ${pts} pts`;
+        info.textContent = txt;
+        card.appendChild(info);
+      }
+
       details.appendChild(card);
       entries.push({ fx, existing, baseline, home, away, card });
     });

@@ -22,3 +22,5 @@ th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #eee; }
 .save-bar button { padding: .5rem 1rem; font-weight: 600; border: 1px solid #0a3d62; background: #0a3d62; color: #fff; border-radius: 4px; cursor: pointer; }
 .save-bar button:disabled { opacity: .4; cursor: default; }
 .match.dirty { border-left: 4px solid #f1c40f; background: #fffdf3; }
+.result-info { font-size: .85rem; color: #555; margin-top: .35rem; }
+.total-banner { font-weight: 600; padding: .35rem 0; font-size: 1.05rem; }

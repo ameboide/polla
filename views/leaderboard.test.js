@@ -1,8 +1,27 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeStandings, effectiveResults } from "./leaderboard.js";
+import { computeStandings, effectiveResults, pointsByMatch } from "./leaderboard.js";
 
 const cfg = { winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1 };
+
+test("pointsByMatch scores a player's predictions against effective results", () => {
+  const fixtures = [
+    { id: "m1", result: { homeGoals: 2, awayGoals: 1 } }, // exact -> 18
+    { id: "m2", result: { homeGoals: 0, awayGoals: 0 } }, // wrong -> 0
+    { id: "m3" },                                          // no result
+  ];
+  const predictions = [
+    { player: "Ana", matchId: "m1", homeGoals: 2, awayGoals: 1 },
+    { player: "Ana", matchId: "m2", homeGoals: 2, awayGoals: 1 }, // vs 0-0: nothing matches -> 0
+    { player: "Ana", matchId: "m3", homeGoals: 1, awayGoals: 0 }, // no result -> omitted
+    { player: "Bob", matchId: "m1", homeGoals: 0, awayGoals: 0 },
+  ];
+  const m = pointsByMatch(fixtures, predictions, [], cfg, "Ana");
+  assert.equal(m.get("m1"), 18);
+  assert.equal(m.get("m2"), 0);
+  assert.equal(m.has("m3"), false); // no result
+  assert.equal(m.size, 2);
+});
 
 test("effectiveResults prefers admin result over the fixture default", () => {
   const fixtures = [
