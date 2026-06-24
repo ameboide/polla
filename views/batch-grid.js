@@ -1,5 +1,6 @@
 import { groupFixturesByDay } from "./grouping.js";
 import { summarizeEdits, isDirty } from "./editing.js";
+import { flagFor } from "./flags.js";
 
 // Renders a day-grouped grid of score inputs with one batch "Save" bar.
 // Edits are tracked against each fixture's saved baseline; dirty cards are
@@ -88,9 +89,19 @@ export function renderBatchGrid(root, ctx, opts) {
 
       const card = document.createElement("div");
       card.className = "match" + (locked ? " locked" : "");
-      card.appendChild(Object.assign(document.createElement("div"), {
-        textContent: `[${fx.group}] ${fx.home} vs ${fx.away} — ${new Date(fx.kickoff).toLocaleString()}`,
+
+      // Header: teams on the left, kickoff time right-aligned (the date already
+      // shows in the day group header, so only the time is needed here).
+      const head = document.createElement("div");
+      head.className = "match-head";
+      head.appendChild(Object.assign(document.createElement("span"), {
+        textContent: `[${fx.group}] ${fx.home} vs ${fx.away}`,
       }));
+      head.appendChild(Object.assign(document.createElement("span"), {
+        className: "match-time",
+        textContent: new Date(fx.kickoff).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      }));
+      card.appendChild(head);
 
       const home = document.createElement("input");
       home.type = "number"; home.min = "0"; home.value = baseline ? baseline.homeGoals : "";
@@ -102,7 +113,14 @@ export function renderBatchGrid(root, ctx, opts) {
         away.addEventListener("input", recompute);
       }
 
-      card.append(" ", home, " - ", away);
+      // [flag] [input] - [input] [flag]
+      const homeFlag = Object.assign(document.createElement("span"), {
+        className: "flag", textContent: flagFor(fx.home), title: fx.home,
+      });
+      const awayFlag = Object.assign(document.createElement("span"), {
+        className: "flag", textContent: flagFor(fx.away), title: fx.away,
+      });
+      card.append(homeFlag, " ", home, " - ", away, " ", awayFlag);
 
       const result = opts.resultFor ? opts.resultFor(fx) : null;
       if (result) {
