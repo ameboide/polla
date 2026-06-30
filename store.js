@@ -39,6 +39,7 @@ export function flattenPredictions(records) {
       matchId: m.matchId,
       homeGoals: m.homeGoals,
       awayGoals: m.awayGoals,
+      advancer: m.advancer,
     }))
   );
 }
@@ -52,7 +53,9 @@ export function resultsMatches(record) {
 export function mergeMatches(existing, edits) {
   const byId = new Map((existing || []).map((m) => [m.matchId, { ...m }]));
   for (const e of edits) {
-    byId.set(e.matchId, { matchId: e.matchId, homeGoals: e.homeGoals, awayGoals: e.awayGoals });
+    const m = { matchId: e.matchId, homeGoals: e.homeGoals, awayGoals: e.awayGoals };
+    if (e.advancer != null) m.advancer = e.advancer;
+    byId.set(e.matchId, m);
   }
   return [...byId.values()];
 }

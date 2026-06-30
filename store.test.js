@@ -12,9 +12,9 @@ test("flattenPredictions expands per-player records into flat rows", () => {
     { id: "p3", player: "Cy", matches: [] }, // no matches -> contributes nothing
   ];
   assert.deepEqual(flattenPredictions(records), [
-    { player: "Ana", matchId: "m1", homeGoals: 2, awayGoals: 1 },
-    { player: "Ana", matchId: "m2", homeGoals: 0, awayGoals: 0 },
-    { player: "Bob", matchId: "m1", homeGoals: 1, awayGoals: 1 },
+    { player: "Ana", matchId: "m1", homeGoals: 2, awayGoals: 1, advancer: undefined },
+    { player: "Ana", matchId: "m2", homeGoals: 0, awayGoals: 0, advancer: undefined },
+    { player: "Bob", matchId: "m1", homeGoals: 1, awayGoals: 1, advancer: undefined },
   ]);
 });
 
@@ -55,4 +55,23 @@ test("resolveConfig falls back to defaults when empty", () => {
   assert.equal(cfg.id, null);
   assert.equal(cfg.winner, DEFAULT_CONFIG.winner);
   assert.equal(cfg.exactScore, DEFAULT_CONFIG.exactScore);
+});
+
+test("flattenPredictions carries advancer when present", () => {
+  const records = [{ id: "p1", player: "Ana", matches: [
+    { matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "Canada" },
+    { matchId: "m1", homeGoals: 2, awayGoals: 0 },
+  ] }];
+  assert.deepEqual(flattenPredictions(records), [
+    { player: "Ana", matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "Canada" },
+    { player: "Ana", matchId: "m1", homeGoals: 2, awayGoals: 0, advancer: undefined },
+  ]);
+});
+
+test("mergeMatches preserves advancer on edits", () => {
+  const merged = mergeMatches(
+    [{ matchId: "m73", homeGoals: 0, awayGoals: 0, advancer: "South Africa" }],
+    [{ matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "Canada" }],
+  );
+  assert.deepEqual(merged, [{ matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "Canada" }]);
 });
