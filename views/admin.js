@@ -1,7 +1,7 @@
 import { saveResults, saveConfig, mergeMatches, resultsMatches, cacheConfig } from "../store.js";
 import { renderBatchGrid } from "./batch-grid.js";
 
-const WEIGHTS = ["winner", "exactScore", "goalDiff", "totalGoals", "eachTeamGoals"];
+const WEIGHTS = ["winner", "exactScore", "goalDiff", "totalGoals", "eachTeamGoals", "advance"];
 
 function configForm(ctx, registerDirty) {
   const { config, } = ctx.data;

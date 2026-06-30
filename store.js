@@ -2,7 +2,7 @@ import { list, create, update } from "./api.js";
 import { COLLECTIONS } from "./config.js";
 
 export const DEFAULT_CONFIG = {
-  winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1,
+  winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1, advance: 5,
 };
 
 export function resolveConfig(records) {

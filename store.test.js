@@ -83,3 +83,7 @@ test("mergeMatches drops advancer when an edit omits it", () => {
   );
   assert.deepEqual(merged, [{ matchId: "m73", homeGoals: 1, awayGoals: 0 }]);
 });
+
+test("DEFAULT_CONFIG includes an advance bonus", () => {
+  assert.equal(typeof DEFAULT_CONFIG.advance, "number");
+});
