@@ -13,7 +13,8 @@ be added without altering the table, including non-numeric settings in future
 
 ## Decisions (settled with the user)
 
-- Table becomes key-value: one row per setting, columns `configKey` / `configValue`.
+- Table renamed `config` → `configs`, and becomes key-value: one row per setting,
+  columns `configKey` / `configValue`.
 - `configValue` is **text**, to allow non-numeric settings later without migration.
 - Column names are `configKey`/`configValue` (NOT `key`/`value`) to avoid SQL
   reserved-word friction; quoted in SQL to preserve camelCase (like the existing
@@ -26,24 +27,30 @@ be added without altering the table, including non-numeric settings in future
 
 ## Schema
 
+The table is also renamed `config` → `configs`. `COLLECTIONS.config` (the JS key)
+keeps its name; its **value** changes from `"config"` to `"configs"` in both
+`config.js` and `config.example.js`, so all `store.js`/`api.js` callers (which use
+`COLLECTIONS.config`) need no change.
+
 ```sql
-create table config (
+create table configs (
   id uuid primary key default gen_random_uuid(),
   "configKey" text not null unique,
   "configValue" text not null
 );
 
-insert into config ("configKey","configValue") values
+insert into configs ("configKey","configValue") values
   ('winner','3'),('exactScore','10'),('goalDiff','2'),
   ('totalGoals','1'),('eachTeamGoals','1'),('advance','5');
 
-alter table config enable row level security;
-create policy anon_all on config for all to anon using (true) with check (true);
+alter table configs enable row level security;
+create policy anon_all on configs for all to anon using (true) with check (true);
 ```
 
 `config.example.js` carries this SQL (replacing the old wide-table SQL). The live
 Supabase project is migrated by the user (the classifier blocks Claude from DB
-writes): drop the existing `config` table and recreate + re-seed as above.
+writes): drop the existing `config` table and create + seed the new `configs`
+table as above.
 
 ## store.js
 
