@@ -1,13 +1,24 @@
-import { list, create, update } from "./api.js";
+import { list, create, update, upsert } from "./api.js";
 import { COLLECTIONS } from "./config.js";
 
 export const DEFAULT_CONFIG = {
   winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1, advance: 5,
 };
 
-export function resolveConfig(records) {
-  if (records.length > 0) return records[0];
-  return { id: null, ...DEFAULT_CONFIG };
+// A config row's value is text; turn it into a number when it clearly is one,
+// otherwise keep the string (so future non-numeric settings pass through).
+function coerceConfigValue(s) {
+  return typeof s === "string" && s.trim() !== "" && Number.isFinite(Number(s))
+    ? Number(s)
+    : s;
+}
+
+// Assemble a flat config object from key-value rows, filling any missing key
+// from DEFAULT_CONFIG. (No single-row id — each key is its own row.)
+export function resolveConfig(rows) {
+  const out = { ...DEFAULT_CONFIG };
+  for (const r of rows) out[r.configKey] = coerceConfigValue(r.configValue);
+  return out;
 }
 
 // Scoring config changes almost never, but a GET for it ran on every page load
@@ -105,8 +116,14 @@ export function saveResults(existingRecord, matches) {
     : create(COLLECTIONS.results, fields);
 }
 
-export function saveConfig(existing, fields) {
-  return existing && existing.id
-    ? update(COLLECTIONS.config, existing.id, fields)
-    : create(COLLECTIONS.config, fields);
+// Shape a flat fields object into key-value upsert rows (values stringified).
+export function configRows(fields) {
+  return Object.entries(fields).map(([configKey, v]) => ({
+    configKey, configValue: String(v),
+  }));
+}
+
+// One row per setting; upsert merges on the unique configKey column.
+export function saveConfig(fields) {
+  return upsert(COLLECTIONS.config, configRows(fields), "configKey");
 }
