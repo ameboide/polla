@@ -43,3 +43,14 @@ test("predictionRows adds the advance bonus and exposes the pick for knockout", 
   assert.equal(row.points, 23);
   assert.equal(row.advancer, "Canada");
 });
+
+test("predictionRows adds the bonus for a decisive knockout pick via score", () => {
+  const cfg = { winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1, advance: 5 };
+  const predictions = [{ player: "Ana", matchId: "m95", homeGoals: 2, awayGoals: 1 }];
+  const result = { matchId: "m95", homeGoals: 2, awayGoals: 1 };
+  const info = { round: "Round of 16", home: "South Africa", away: "Germany" };
+  const [row] = predictionRows(predictions, "m95", result, cfg, info);
+  // exact 2-1: exact 10 + winner 3 + goalDiff 2 + totalGoals 1 + eachTeam 1+1 = 18, + advance 5 (home wins -> SA) = 23
+  assert.equal(row.points, 23);
+  assert.equal(row.advancer, undefined); // no explicit pick on a decisive prediction
+});

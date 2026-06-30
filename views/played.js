@@ -23,7 +23,7 @@ export function predictionRows(predictions, matchId, result, config, info) {
       if (points !== null && info && info.round) {
         const a = advancerOf(result, info.home, info.away);
         const pick = predictedAdvancer(p, info.home, info.away);
-        if (a && pick && a === pick) points += config.advance || 0;
+        if (a && pick && a === pick) points += config.advance ?? 0;
       }
       const row = {
         player: p.player,
@@ -31,7 +31,7 @@ export function predictionRows(predictions, matchId, result, config, info) {
         awayGoals: p.awayGoals,
         points,
       };
-      if (info && info.round) row.advancer = p.advancer;
+      if (info && info.round && p.advancer != null) row.advancer = p.advancer;
       return row;
     })
     .sort((a, b) => (b.points ?? -1) - (a.points ?? -1) || a.player.localeCompare(b.player));
