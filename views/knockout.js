@@ -47,10 +47,7 @@ function loserOf(result, home, away) {
 
 // A prediction's implied pick — same rule as advancerOf.
 export function predictedAdvancer(prediction, home, away) {
-  if (!prediction) return null;
-  if (prediction.homeGoals > prediction.awayGoals) return home;
-  if (prediction.homeGoals < prediction.awayGoals) return away;
-  return prediction.advancer || null;
+  return advancerOf(prediction, home, away);
 }
 
 // Effective result for a match id: admin entry, else the fixture's baked result.

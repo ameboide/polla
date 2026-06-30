@@ -59,6 +59,70 @@ test("resolveKnockout overlays a fixture's baked result when no admin entry", ()
 
 test("koDisplayOrder pairs each adjacent R32 along the real bracket tree", () => {
   const order = koDisplayOrder();
-  assert.deepEqual(order["Round of 16"].length, 8);
+  assert.deepEqual(order["Round of 32"], [76,77,79,80,81,82,83,84,85,86,87,88,73,75,74,78]);
+  assert.deepEqual(order["Round of 16"], [89,90,91,92,93,94,95,96]);
+  assert.deepEqual(order["Quarter-finals"], [97,98,99,100]);
+  assert.deepEqual(order["Semi-finals"], [101,102]);
   assert.deepEqual(order["Final"], [104]);
+});
+
+test("resolveKnockout end-to-end: all home wins propagate through the full bracket", () => {
+  // Build all 32 KO fixtures; R32 have team names, later rounds just round+kickoff.
+  const allFixtures = [
+    ...[ 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88 ].map((n) => ({
+      id: `m${n}`, round: "Round of 32", kickoff: "2026-06-28T19:00:00Z",
+      home: `H${n}`, away: `A${n}`,
+    })),
+    ...[ 89, 90, 91, 92, 93, 94, 95, 96 ].map((n) => ({
+      id: `m${n}`, round: "Round of 16", kickoff: "2026-07-02T22:00:00Z",
+    })),
+    ...[ 97, 98, 99, 100 ].map((n) => ({
+      id: `m${n}`, round: "Quarter-finals", kickoff: "2026-07-05T22:00:00Z",
+    })),
+    ...[ 101, 102 ].map((n) => ({
+      id: `m${n}`, round: "Semi-finals", kickoff: "2026-07-09T22:00:00Z",
+    })),
+    { id: "m103", round: "Third place", kickoff: "2026-07-13T19:00:00Z" },
+    { id: "m104", round: "Final", kickoff: "2026-07-13T22:00:00Z" },
+  ];
+  // Every match is a decisive 1-0 home win.
+  const allResults = [ 73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,
+                       89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104 ]
+    .map((n) => ({ matchId: `m${n}`, homeGoals: 1, awayGoals: 0 }));
+
+  const resolved = resolveKnockout(allFixtures, allResults);
+  const byId = new Map(resolved.map((m) => [m.id, m]));
+
+  const m101 = byId.get("m101");
+  const m102 = byId.get("m102");
+  const m103 = byId.get("m103");
+  const m104 = byId.get("m104");
+
+  assert.equal(m104.defined, true);
+  assert.equal(m104.winner, m104.home);
+
+  // Third-place match is fed by the losers of the two semi-finals.
+  assert.equal(m103.home, m101.loser);
+  assert.equal(m103.away, m102.loser);
+
+  // For every resolved match, home wins so loser === away and winner === home.
+  for (const m of resolved) {
+    if (m.defined && m.result) {
+      assert.equal(m.winner, m.home, `expected home to win m${m.match}`);
+      assert.equal(m.loser, m.away, `expected away to lose m${m.match}`);
+    }
+  }
+});
+
+test("resolveKnockout admin entry overrides a fixture's baked result", () => {
+  const fixture = {
+    id: "m73", round: "Round of 32", kickoff: "2026-06-28T19:00:00Z",
+    home: "HomeTeam", away: "AwayTeam",
+    result: { homeGoals: 0, awayGoals: 1 }, // baked: away wins
+  };
+  const adminResults = [
+    { matchId: "m73", homeGoals: 2, awayGoals: 0 }, // admin: home wins
+  ];
+  const m73 = resolveKnockout([fixture], adminResults).find((m) => m.id === "m73");
+  assert.equal(m73.winner, "HomeTeam");
 });
