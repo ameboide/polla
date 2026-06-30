@@ -1,6 +1,8 @@
 import { savePlayerPredictions, mergeMatches, flattenPredictions } from "../store.js";
 import { renderBatchGrid } from "./batch-grid.js";
 import { effectiveResults, pointsByMatch } from "./leaderboard.js";
+import { resolveKnockout } from "./knockout.js";
+import { makeAdvancerControl } from "./advancer-control.js";
 
 function findPrediction(predictions, player, matchId) {
   return predictions.find((p) => p.player === player && p.matchId === matchId) || null;
@@ -56,10 +58,30 @@ export function renderPredict(root, ctx) {
 
   const playerRecord = () => (data.predictionRecords || []).find((r) => r.player === player) || null;
 
+  // Build combined fixture list: swap resolved knockout teams/labels/round onto
+  // knockout fixtures so the grid shows real team names once they're known.
+  const resolved = new Map(
+    resolveKnockout(data.fixtures, data.results).map((k) => [k.id, k])
+  );
+  const matches = data.fixtures.map((fx) => {
+    const k = resolved.get(fx.id);
+    return k
+      ? { ...fx, home: k.home, away: k.away, homeLabel: k.homeLabel, awayLabel: k.awayLabel, round: k.round, resolved: k.defined }
+      : fx;
+  });
+
   renderBatchGrid(root, ctx, {
-    fixtures: data.fixtures,
+    fixtures: matches,
     baselineFor: (fx) => scoresOf(findPrediction(data.predictions, player, fx.id)),
-    lockedFor: (fx) => !ctx.adminUnlockPast && Date.now() >= Date.parse(fx.kickoff),
+    lockedFor: (fx) =>
+      (fx.round && !fx.resolved) ||
+      (!ctx.adminUnlockPast && Date.now() >= Date.parse(fx.kickoff)),
+    extraControl: (fx, api) =>
+      makeAdvancerControl(
+        fx,
+        api,
+        (findPrediction(data.predictions, player, fx.id) || {}).advancer || ""
+      ),
     saveAll: async (saveable) => {
       const rec = playerRecord();
       const edits = saveable.map((s) => ({ matchId: s.key, ...s.fields }));

@@ -76,3 +76,5 @@ th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #eee; }
 .partial-note { font-size: .85rem; color: #555; margin: 0 0 .5rem; }
 .player-picker { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-bottom: .75rem; }
 .player-picker label { font-size: .9rem; cursor: pointer; }
+.advancer { margin-top: .35rem; }
+.advancer select { font-size: .9rem; }
