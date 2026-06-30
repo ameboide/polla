@@ -50,12 +50,14 @@ export function renderBatchGrid(root, ctx, opts) {
       baseline: e.baseline,
       homeStr: e.home.value,
       awayStr: e.away.value,
+      extra: e.extra ? { value: e.extra.value(), baseline: e.extra.baseline } : undefined,
     }));
 
   function recompute() {
     const s = summarizeEdits(snapshot());
     for (const e of entries) {
-      e.card.classList.toggle("dirty", isDirty(e.baseline, e.home.value, e.away.value));
+      const ex = e.extra ? { value: e.extra.value(), baseline: e.extra.baseline } : undefined;
+      e.card.classList.toggle("dirty", isDirty(e.baseline, e.home.value, e.away.value, ex));
     }
     const n = s.saveable.length;
     button.disabled = n === 0;
@@ -129,6 +131,12 @@ export function renderBatchGrid(root, ctx, opts) {
       });
       card.append(homeFlag, " ", home, " - ", away, " ", awayFlag);
 
+      let extra = null;
+      if (opts.extraControl) {
+        extra = opts.extraControl(fx, { homeInput: home, awayInput: away, recompute });
+        if (extra && extra.el) card.appendChild(extra.el);
+      }
+
       const result = opts.resultFor ? opts.resultFor(fx) : null;
       if (result) {
         const info = document.createElement("div");
@@ -141,7 +149,7 @@ export function renderBatchGrid(root, ctx, opts) {
       }
 
       details.appendChild(card);
-      entries.push({ fx, baseline, home, away, card });
+      entries.push({ fx, baseline, home, away, card, extra });
     });
     root.appendChild(details);
   });
@@ -157,6 +165,7 @@ export function renderBatchGrid(root, ctx, opts) {
     e.home.value = e.baseline ? e.baseline.homeGoals : "";
     e.away.value = e.baseline ? e.baseline.awayGoals : "";
     e.home.disabled = e.away.disabled = true;
+    if (e.extra && e.extra.reset) e.extra.reset();
     e.card.classList.add("locked");
     recompute();
     ctx.setStatus("A match kicked off — its inputs are now locked.");

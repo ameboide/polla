@@ -45,3 +45,16 @@ test("summarizeEdits splits saveable from incomplete and counts dirty", () => {
   assert.deepEqual(s.saveable.map((x) => x.key), ["m1", "m3"]);
   assert.deepEqual(s.saveable[0].fields, { homeGoals: 2, awayGoals: 1 });
 });
+
+test("isDirty flags a changed extra value even when the score is unchanged", () => {
+  assert.equal(isDirty({ homeGoals: 1, awayGoals: 1 }, "1", "1", { value: "B", baseline: "A" }), true);
+  assert.equal(isDirty({ homeGoals: 1, awayGoals: 1 }, "1", "1", { value: "A", baseline: "A" }), false);
+});
+
+test("summarizeEdits folds a truthy extra value into the saved fields as advancer", () => {
+  const { saveable } = summarizeEdits([
+    { key: "m73", baseline: { homeGoals: 0, awayGoals: 0 }, homeStr: "1", awayStr: "1",
+      extra: { value: "Canada", baseline: "" } },
+  ]);
+  assert.deepEqual(saveable, [{ key: "m73", fields: { homeGoals: 1, awayGoals: 1, advancer: "Canada" } }]);
+});
