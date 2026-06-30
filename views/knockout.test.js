@@ -20,9 +20,9 @@ test("predictedAdvancer mirrors advancerOf for a prediction", () => {
 });
 
 const fx = [
-  { id: "m73", round: "Round of 32", kickoff: "2026-06-28T19:00:00Z", home: "SA", away: "CA" },
-  { id: "m75", round: "Round of 32", kickoff: "2026-06-29T20:30:00Z", home: "DE", away: "PY" },
-  { id: "m95", round: "Round of 16", kickoff: "2026-07-02T22:00:00Z" },
+  { id: "m73", round: "Round of 32", kickoff: "2026-06-28T16:00:00Z", home: "SA", away: "CA" },
+  { id: "m76", round: "Round of 32", kickoff: "2026-06-29T20:00:00Z", home: "NL", away: "MA" },
+  { id: "m89", round: "Round of 16", kickoff: "2026-07-04T17:00:00Z" }, // feeds [73, 76]
 ];
 
 test("resolveKnockout reads R32 teams straight from fixtures", () => {
@@ -33,22 +33,22 @@ test("resolveKnockout reads R32 teams straight from fixtures", () => {
 });
 
 test("resolveKnockout leaves a later match undefined until both feeders resolve", () => {
-  const m95 = resolveKnockout(fx, []).find((m) => m.id === "m95");
-  assert.equal(m95.home, null);
-  assert.equal(m95.defined, false);
-  assert.equal(m95.homeLabel, "Winner 73");
-  assert.equal(m95.awayLabel, "Winner 75");
+  const m89 = resolveKnockout(fx, []).find((m) => m.id === "m89");
+  assert.equal(m89.home, null);
+  assert.equal(m89.defined, false);
+  assert.equal(m89.homeLabel, "Winner 73");
+  assert.equal(m89.awayLabel, "Winner 76");
 });
 
 test("resolveKnockout propagates winners into the next round", () => {
   const results = [
     { matchId: "m73", homeGoals: 1, awayGoals: 0 },          // SA through
-    { matchId: "m75", homeGoals: 1, awayGoals: 1, advancer: "PY" }, // PY through on pens
+    { matchId: "m76", homeGoals: 1, awayGoals: 1, advancer: "MA" }, // MA through on pens
   ];
-  const m95 = resolveKnockout(fx, results).find((m) => m.id === "m95");
-  assert.equal(m95.home, "SA");
-  assert.equal(m95.away, "PY");
-  assert.equal(m95.defined, true);
+  const m89 = resolveKnockout(fx, results).find((m) => m.id === "m89");
+  assert.equal(m89.home, "SA");
+  assert.equal(m89.away, "MA");
+  assert.equal(m89.defined, true);
 });
 
 test("resolveKnockout overlays a fixture's baked result when no admin entry", () => {
@@ -59,7 +59,7 @@ test("resolveKnockout overlays a fixture's baked result when no admin entry", ()
 
 test("koDisplayOrder pairs each adjacent R32 along the real bracket tree", () => {
   const order = koDisplayOrder();
-  assert.deepEqual(order["Round of 32"], [76,77,79,80,81,82,83,84,85,86,87,88,73,75,74,78]);
+  assert.deepEqual(order["Round of 32"], [73,76,75,77,74,78,79,80,83,84,81,82,86,88,85,87]);
   assert.deepEqual(order["Round of 16"], [89,90,91,92,93,94,95,96]);
   assert.deepEqual(order["Quarter-finals"], [97,98,99,100]);
   assert.deepEqual(order["Semi-finals"], [101,102]);
