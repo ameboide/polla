@@ -55,6 +55,7 @@ th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #eee; }
 .bk-num { font-size: .7rem; color: #999; display: block; margin-bottom: .2rem; }
 .bk-slot { padding: .2rem 0; }
 .bk-slot + .bk-slot { border-top: 1px solid #f0f0f0; }
+.bk-slot.winner { font-weight: 700; }
 .bk-crit { font-weight: 600; }
 .bk-prov { color: #bbb; font-style: italic; margin-left: .4rem; }
 .group { margin-bottom: 1.5rem; }
