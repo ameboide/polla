@@ -34,11 +34,11 @@ function configForm(ctx, registerDirty) {
     save.disabled = true;
     ctx.setStatus("Saving weights…");
     try {
-      const saved = await saveConfig(config.id ? config : null, fields);
+      await saveConfig(fields);
       // Patch in-memory + cache (write-through) so no reload is needed and the
       // cached config stays fresh for this admin.
-      ctx.data.config = saved;
-      cacheConfig(saved);
+      ctx.data.config = { ...ctx.data.config, ...fields };
+      cacheConfig(ctx.data.config);
       ctx.setStatus("Saved");
       ctx.rerender();
     }
