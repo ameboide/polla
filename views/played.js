@@ -67,10 +67,12 @@ export function renderPlayed(root, ctx) {
     stageEl.appendChild(Object.assign(document.createElement("summary"), {
       textContent: `${stage.label} — ${stage.fixtures.length} matches`,
     }));
-    groupFixturesByDay(stage.fixtures).forEach((day) => {
+    const days = groupFixturesByDay(stage.fixtures);
+    days.forEach((day, i) => {
     const details = document.createElement("details");
     details.className = "day" + (day.isPast ? " past" : "");
-    details.open = !day.isPast;
+    // Played matches are all past, so open the most recent day of each stage.
+    details.open = !day.isPast || i === days.length - 1;
     details.appendChild(Object.assign(document.createElement("summary"), {
       textContent: `${day.label} — ${day.fixtures.length} matches`,
     }));
