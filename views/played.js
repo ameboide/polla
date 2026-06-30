@@ -2,6 +2,7 @@ import { score } from "../scoring.js";
 import { effectiveResults } from "./leaderboard.js";
 import { resolveKnockout, advancerOf, predictedAdvancer } from "./knockout.js";
 import { groupFixturesByDay } from "./grouping.js";
+import { groupByStage } from "./stages.js";
 import { flagFor } from "./flags.js";
 import { makeCollapseAllControl } from "./collapse-all.js";
 
@@ -59,7 +60,12 @@ export function renderPlayed(root, ctx) {
   toolbar.appendChild(collapseAll.btn);
   root.appendChild(toolbar);
 
-  groupFixturesByDay(past).forEach((day) => {
+  groupByStage(past, Date.now()).forEach((stage) => {
+    const stageEl = document.createElement("details");
+    stageEl.className = "stage";
+    stageEl.open = stage.current;
+    stageEl.appendChild(Object.assign(document.createElement("summary"), { textContent: stage.label }));
+    groupFixturesByDay(stage.fixtures).forEach((day) => {
     const details = document.createElement("details");
     details.className = "day" + (day.isPast ? " past" : "");
     details.open = !day.isPast;
@@ -116,7 +122,9 @@ export function renderPlayed(root, ctx) {
       }
       details.appendChild(card);
     });
-    root.appendChild(details);
+    stageEl.appendChild(details);
+    });
+    root.appendChild(stageEl);
   });
 
   collapseAll.sync();
