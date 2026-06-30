@@ -38,6 +38,16 @@ export async function update(table, id, fields) {
   return Array.isArray(rows) ? rows[0] : rows;
 }
 
+// Upsert rows, merging on a unique column. PostgREST resolves conflicts on
+// `onConflict` and echoes the resulting rows.
+export async function upsert(table, rows, onConflict) {
+  const result = await request(
+    "POST", `/${table}?on_conflict=${onConflict}`, rows,
+    "resolution=merge-duplicates,return=representation",
+  );
+  return Array.isArray(result) ? result : [result];
+}
+
 export async function remove(table, id) {
   await request("DELETE", `/${table}?id=eq.${id}`);
 }

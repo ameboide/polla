@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { list, create, update, remove } from "./api.js";
+import { list, create, update, remove, upsert } from "./api.js";
 
 function mockFetch(responder) {
   globalThis.fetch = async (url, opts = {}) => {
@@ -47,4 +47,16 @@ test("remove DELETEs /table?id=eq.:id and returns undefined", async () => {
   assert.equal(seen.method, "DELETE");
   assert.match(seen.url, /\/config\?id=eq\.3$/);
   assert.equal(out, undefined);
+});
+
+test("upsert POSTs to /table?on_conflict=col with merge-duplicates and returns an array", async () => {
+  let sent;
+  mockFetch((url, opts) => { sent = { url, opts, body: JSON.parse(opts.body) }; return JSON.parse(opts.body); });
+  const rows = [{ configKey: "winner", configValue: "3" }, { configKey: "advance", configValue: "5" }];
+  const out = await upsert("configs", rows, "configKey");
+  assert.match(sent.url, /\/configs\?on_conflict=configKey$/);
+  assert.equal(sent.opts.method, "POST");
+  assert.equal(sent.opts.headers.Prefer, "resolution=merge-duplicates,return=representation");
+  assert.deepEqual(sent.body, rows);
+  assert.deepEqual(out, rows);
 });
