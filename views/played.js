@@ -64,7 +64,9 @@ export function renderPlayed(root, ctx) {
     const stageEl = document.createElement("details");
     stageEl.className = "stage";
     stageEl.open = stage.current;
-    stageEl.appendChild(Object.assign(document.createElement("summary"), { textContent: stage.label }));
+    stageEl.appendChild(Object.assign(document.createElement("summary"), {
+      textContent: `${stage.label} — ${stage.fixtures.length} matches`,
+    }));
     groupFixturesByDay(stage.fixtures).forEach((day) => {
     const details = document.createElement("details");
     details.className = "day" + (day.isPast ? " past" : "");

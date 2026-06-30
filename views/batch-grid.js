@@ -87,7 +87,9 @@ export function renderBatchGrid(root, ctx, opts) {
     const stageEl = document.createElement("details");
     stageEl.className = "stage";
     stageEl.open = stage.current;
-    stageEl.appendChild(Object.assign(document.createElement("summary"), { textContent: stage.label }));
+    let stageText = `${stage.label} — ${stage.fixtures.length} matches`;
+    if (opts.dayPoints) stageText += ` · ${opts.dayPoints(stage.fixtures)} pts`;
+    stageEl.appendChild(Object.assign(document.createElement("summary"), { textContent: stageText }));
     groupFixturesByDay(stage.fixtures).forEach((day) => {
     const details = document.createElement("details");
     details.className = "day" + (day.isPast ? " past" : "");
