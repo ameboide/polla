@@ -58,6 +58,17 @@ test("sums points per player and sorts desc", () => {
   assert.equal(s[1].points, 0);
 });
 
+test("computeStandings counts how many matches each player predicted", () => {
+  const predictions = [
+    { player: "Ana", matchId: "m1", homeGoals: 1, awayGoals: 0 },
+    { player: "Ana", matchId: "m2", homeGoals: 2, awayGoals: 2 }, // no result, still counted
+    { player: "Bob", matchId: "m1", homeGoals: 0, awayGoals: 0 },
+  ];
+  const s = computeStandings(predictions, [], cfg);
+  assert.equal(s.find((r) => r.player === "Ana").predicted, 2);
+  assert.equal(s.find((r) => r.player === "Bob").predicted, 1);
+});
+
 test("ignores matches without a result", () => {
   const predictions = [{ player: "Ana", matchId: "m9", homeGoals: 1, awayGoals: 0 }];
   const s = computeStandings(predictions, [], cfg);
@@ -174,7 +185,7 @@ test("partialStandings filters the eligible matches by stage", () => {
 
   // group-only: only m1 counts -> Ana exact 1-0 (18), Bob 0-0 vs 1-0 (0)
   const grp = partialStandings(predictions, results, cfg, players, index, "group").standings;
-  assert.deepEqual(grp.find((r) => r.player === "Ana"), { player: "Ana", points: 18 });
+  assert.deepEqual(grp.find((r) => r.player === "Ana"), { player: "Ana", points: 18, predicted: 1 });
 
   // default (5-arg) stays unfiltered
   assert.equal(partialStandings(predictions, results, cfg, players, index).matchCount, 2);

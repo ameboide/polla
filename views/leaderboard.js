@@ -99,10 +99,13 @@ export function computeStandings(predictions, results, config, index) {
     const r = resultByMatch.get(p.matchId);
     let pts = r ? score(p, r, config) : 0;
     if (r && index) pts += bonus(p, r, index.get(p.matchId), config);
-    totals.set(p.player, (totals.get(p.player) || 0) + pts);
+    const t = totals.get(p.player) || { points: 0, predicted: 0 };
+    t.points += pts;
+    t.predicted += 1;
+    totals.set(p.player, t);
   }
   return [...totals.entries()]
-    .map(([player, points]) => ({ player, points }))
+    .map(([player, t]) => ({ player, points: t.points, predicted: t.predicted }))
     .sort((a, b) => b.points - a.points || a.player.localeCompare(b.player));
 }
 
@@ -110,14 +113,15 @@ export function computeStandings(predictions, results, config, index) {
 function standingsTable(standings, emptyText) {
   if (!standings.length) return document.createTextNode(emptyText);
   const table = document.createElement("table");
-  table.innerHTML = "<thead><tr><th>#</th><th>Player</th><th>Points</th></tr></thead>";
+  table.innerHTML = "<thead><tr><th>#</th><th>Player</th><th>Points</th><th>Predicted</th></tr></thead>";
   const body = document.createElement("tbody");
   standings.forEach((row, i) => {
     const tr = document.createElement("tr");
     const rankTd = document.createElement("td"); rankTd.textContent = i + 1;
     const nameTd = document.createElement("td"); nameTd.textContent = row.player;
     const ptsTd = document.createElement("td"); ptsTd.textContent = row.points;
-    tr.append(rankTd, nameTd, ptsTd);
+    const predTd = document.createElement("td"); predTd.textContent = row.predicted ?? "";
+    tr.append(rankTd, nameTd, ptsTd, predTd);
     body.appendChild(tr);
   });
   table.appendChild(body);
