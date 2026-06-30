@@ -1,5 +1,7 @@
 import { saveResults, saveConfig, mergeMatches, resultsMatches, cacheConfig } from "../store.js";
 import { renderBatchGrid } from "./batch-grid.js";
+import { resolveKnockout } from "./knockout.js";
+import { makeAdvancerControl } from "./advancer-control.js";
 
 const WEIGHTS = ["winner", "exactScore", "goalDiff", "totalGoals", "eachTeamGoals", "advance"];
 
@@ -50,8 +52,13 @@ function configForm(ctx, registerDirty) {
 function resultsSection(root, ctx) {
   root.appendChild(Object.assign(document.createElement("h3"), { textContent: "Actual results" }));
   const adminResult = (fx) => ctx.data.results.find((r) => r.matchId === fx.id) || null;
+  const resolved = new Map(resolveKnockout(ctx.data.fixtures, ctx.data.results).map((k) => [k.id, k]));
+  const matches = ctx.data.fixtures.map((fx) => {
+    const k = resolved.get(fx.id);
+    return k ? { ...fx, home: k.home, away: k.away, round: k.round, resolved: k.defined } : fx;
+  });
   renderBatchGrid(root, ctx, {
-    fixtures: ctx.data.fixtures,
+    fixtures: matches,
     // Prefill with the admin's saved result, else the fixture's real score
     // (from fixtures.json) so unentered matches show their actual result.
     baselineFor: (fx) => {
@@ -59,7 +66,8 @@ function resultsSection(root, ctx) {
       if (r) return { homeGoals: r.homeGoals, awayGoals: r.awayGoals };
       return fx.result ? { homeGoals: fx.result.homeGoals, awayGoals: fx.result.awayGoals } : null;
     },
-    lockedFor: () => false,
+    lockedFor: (fx) => Boolean(fx.round && !fx.resolved),
+    extraControl: (fx, api) => makeAdvancerControl(fx, api, (adminResult(fx) || {}).advancer || ""),
     // All results live in one record; merge edits into its matches array.
     saveAll: async (saveable) => {
       const rec = ctx.data.resultsRecord || null;
