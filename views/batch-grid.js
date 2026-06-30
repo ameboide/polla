@@ -1,4 +1,5 @@
 import { groupFixturesByDay } from "./grouping.js";
+import { groupByStage } from "./stages.js";
 import { summarizeEdits, isDirty } from "./editing.js";
 import { flagFor } from "./flags.js";
 import { makeCollapseAllControl } from "./collapse-all.js";
@@ -82,7 +83,12 @@ export function renderBatchGrid(root, ctx, opts) {
     }
   });
 
-  groupFixturesByDay(opts.fixtures).forEach((day) => {
+  groupByStage(opts.fixtures, Date.now()).forEach((stage) => {
+    const stageEl = document.createElement("details");
+    stageEl.className = "stage";
+    stageEl.open = stage.current;
+    stageEl.appendChild(Object.assign(document.createElement("summary"), { textContent: stage.label }));
+    groupFixturesByDay(stage.fixtures).forEach((day) => {
     const details = document.createElement("details");
     details.className = "day" + (day.isPast ? " past" : "");
     details.open = !day.isPast;
@@ -154,7 +160,9 @@ export function renderBatchGrid(root, ctx, opts) {
       details.appendChild(card);
       entries.push({ fx, baseline, home, away, card, extra });
     });
-    root.appendChild(details);
+    stageEl.appendChild(details);
+    });
+    root.appendChild(stageEl);
   });
 
   // Live-lock: if the page is left open when a match kicks off, disable its

@@ -7,7 +7,7 @@ export function makeCollapseAllControl(container) {
   btn.type = "button";
   btn.className = "collapse-all";
 
-  const groups = () => [...container.querySelectorAll("details.day")];
+  const groups = () => [...container.querySelectorAll("details.stage, details.day")];
   function sync() {
     const all = groups();
     btn.disabled = all.length === 0;

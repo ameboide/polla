@@ -33,6 +33,7 @@ th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #eee; }
 .day > summary { cursor: pointer; padding: .6rem .75rem; font-weight: 600; background: #f0f4f8; border-radius: 6px; user-select: none; }
 .day[open] > summary { border-bottom: 1px solid #ddd; border-radius: 6px 6px 0 0; }
 .day.past > summary { color: #666; background: #f7f7f7; }
+details.stage > summary { font-weight: 700; font-size: 1.05rem; margin: .5rem 0; }
 .day > .match { margin: .5rem; }
 .save-bar { position: sticky; top: 0; z-index: 5; background: #fff; padding: .5rem 0; margin-bottom: .5rem; }
 .save-bar button { padding: .5rem 1rem; font-weight: 600; border: 1px solid #0a3d62; background: #0a3d62; color: #fff; border-radius: 4px; cursor: pointer; }
