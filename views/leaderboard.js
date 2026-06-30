@@ -1,4 +1,5 @@
 import { score } from "../scoring.js";
+import { advancerOf, predictedAdvancer, resolveKnockout } from "./knockout.js";
 
 // The result used for scoring a match: the admin's entered result if present,
 // otherwise the fixture's real result baked into fixtures.json. Matches with
@@ -14,15 +15,40 @@ export function effectiveResults(fixtures, adminResults) {
   return out;
 }
 
+// matchId -> { round, home, away }. Group matches have round: null so the
+// advancer bonus is never applied to them.
+export function matchIndex(fixtures, results) {
+  const idx = new Map();
+  for (const fx of fixtures) {
+    if (fx.group != null) idx.set(fx.id, { round: null, home: fx.home, away: fx.away });
+  }
+  for (const k of resolveKnockout(fixtures, results)) {
+    idx.set(k.id, { round: k.round, home: k.home, away: k.away });
+  }
+  return idx;
+}
+
+function bonus(prediction, result, info, config) {
+  if (!info || !info.round) return 0;
+  const actual = advancerOf(result, info.home, info.away);
+  const pick = predictedAdvancer(prediction, info.home, info.away);
+  return actual && pick && actual === pick ? (config.advance || 0) : 0;
+}
+
 // Points a single player earned per match: Map(matchId -> points). Only
 // includes matches that have an effective result AND a prediction by player.
 export function pointsByMatch(fixtures, predictions, results, config, player) {
   const eff = new Map(effectiveResults(fixtures, results).map((r) => [r.matchId, r]));
+  const resolved = new Map(resolveKnockout(fixtures, results).map((k) => [k.id, k]));
   const out = new Map();
   for (const fx of fixtures) {
     const r = eff.get(fx.id);
     const p = predictions.find((x) => x.player === player && x.matchId === fx.id);
-    if (r && p) out.set(fx.id, score(p, r, config));
+    if (!r || !p) continue;
+    let pts = score(p, r, config);
+    const k = resolved.get(fx.id);
+    if (k && k.round) pts += bonus(p, r, { round: k.round, home: k.home, away: k.away }, config);
+    out.set(fx.id, pts);
   }
   return out;
 }
@@ -49,19 +75,20 @@ export function eligibleMatchIds(predictions, selectedPlayers) {
 
 // Standings restricted to the selected players and only the matches all of
 // them predicted. Returns { standings, matchCount }.
-export function partialStandings(predictions, results, config, selectedPlayers) {
+export function partialStandings(predictions, results, config, selectedPlayers, index) {
   const eligible = eligibleMatchIds(predictions, selectedPlayers);
   const selected = new Set(selectedPlayers);
   const subset = predictions.filter((p) => selected.has(p.player) && eligible.has(p.matchId));
-  return { standings: computeStandings(subset, results, config), matchCount: eligible.size };
+  return { standings: computeStandings(subset, results, config, index), matchCount: eligible.size };
 }
 
-export function computeStandings(predictions, results, config) {
+export function computeStandings(predictions, results, config, index) {
   const resultByMatch = new Map(results.map((r) => [r.matchId, r]));
   const totals = new Map();
   for (const p of predictions) {
     const r = resultByMatch.get(p.matchId);
-    const pts = r ? score(p, r, config) : 0;
+    let pts = r ? score(p, r, config) : 0;
+    if (r && index) pts += bonus(p, r, index.get(p.matchId), config);
     totals.set(p.player, (totals.get(p.player) || 0) + pts);
   }
   return [...totals.entries()]
@@ -90,8 +117,9 @@ function standingsTable(standings, emptyText) {
 export function renderLeaderboard(root, ctx) {
   const { fixtures, predictions, results, config } = ctx.data;
   const eff = effectiveResults(fixtures, results);
+  const index = matchIndex(fixtures, results);
 
-  root.appendChild(standingsTable(computeStandings(predictions, eff, config), "No standings yet."));
+  root.appendChild(standingsTable(computeStandings(predictions, eff, config, index), "No standings yet."));
 
   // Partial leaderboard: a selectable subset of players scored only on the
   // matches all of them predicted. Starts with everyone selected.
@@ -132,7 +160,7 @@ export function renderLeaderboard(root, ctx) {
 
   function renderPartial() {
     const chosen = players.filter((p) => selected.has(p));
-    const { standings, matchCount } = partialStandings(predictions, eff, config, chosen);
+    const { standings, matchCount } = partialStandings(predictions, eff, config, chosen, index);
     note.textContent = chosen.length
       ? `Scoring ${chosen.length} player(s) over ${matchCount} match(es) all of them predicted.`
       : "Select at least one player.";

@@ -7,6 +7,7 @@ import {
   allPlayers,
   eligibleMatchIds,
   partialStandings,
+  matchIndex,
 } from "./leaderboard.js";
 
 const cfg = { winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1 };
@@ -96,6 +97,33 @@ test("eligibleMatchIds with one player is all their predicted matches", () => {
 test("eligibleMatchIds with no selected players is empty", () => {
   const predictions = [{ player: "Ana", matchId: "m1", homeGoals: 1, awayGoals: 0 }];
   assert.equal(eligibleMatchIds(predictions, []).size, 0);
+});
+
+test("computeStandings adds the advance bonus for a correct knockout pick", () => {
+  const cfg = { winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1, advance: 5 };
+  const index = new Map([["m73", { round: "Round of 32", home: "SA", away: "CA" }]]);
+  const predictions = [{ player: "Ana", matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "CA" }];
+  const results = [{ matchId: "m73", homeGoals: 0, awayGoals: 0, advancer: "CA" }];
+  // exact 0-0? prediction is 1-1 so: winner(draw=draw)=3, goalDiff(0=0)=2, totalGoals(2!=0)=0 -> 5, + advance 5 = 10
+  const [row] = computeStandings(predictions, results, cfg, index);
+  assert.equal(row.points, 10);
+});
+
+test("computeStandings gives no bonus for a wrong knockout pick", () => {
+  const cfg = { winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1, advance: 5 };
+  const index = new Map([["m73", { round: "Round of 32", home: "SA", away: "CA" }]]);
+  const predictions = [{ player: "Ana", matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "SA" }];
+  const results = [{ matchId: "m73", homeGoals: 0, awayGoals: 0, advancer: "CA" }];
+  assert.equal(computeStandings(predictions, results, cfg, index)[0].points, 5); // score only, no bonus
+});
+
+test("computeStandings never bonuses group matches", () => {
+  const cfg = { winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1, advance: 5 };
+  const index = new Map([["m1", { round: null, home: "X", away: "Y" }]]);
+  const predictions = [{ player: "Ana", matchId: "m1", homeGoals: 1, awayGoals: 1, advancer: "X" }];
+  const results = [{ matchId: "m1", homeGoals: 0, awayGoals: 0 }];
+  // draw=draw: winner 3, goalDiff(0=0) 2, totalGoals(2!=0) 0 -> 5; no bonus for group match
+  assert.equal(computeStandings(predictions, results, cfg, index)[0].points, 5); // winner 3 + goalDiff 2
 });
 
 test("partialStandings only counts matches all selected players predicted", () => {
