@@ -14,21 +14,25 @@
 //     id uuid primary key default gen_random_uuid(),
 //     matches jsonb not null default '[]'
 //   );
-//   create table config (
+//   create table configs (
 //     id uuid primary key default gen_random_uuid(),
-//     "winner" int, "exactScore" int, "goalDiff" int,
-//     "totalGoals" int, "eachTeamGoals" int
+//     "configKey" text not null unique,
+//     "configValue" text not null
 //   );
+//
+//   insert into configs ("configKey","configValue") values
+//     ('winner','3'),('exactScore','10'),('goalDiff','2'),
+//     ('totalGoals','1'),('eachTeamGoals','1'),('advance','5');
 //
 //   alter table predictions enable row level security;
 //   alter table results     enable row level security;
-//   alter table config      enable row level security;
+//   alter table configs     enable row level security;
 //
 //   -- Open read+write to the anon role. Anyone can edit (matches the app's
 //   -- open-pool trust model); tighten later if you add real auth.
 //   create policy anon_all on predictions for all to anon using (true) with check (true);
 //   create policy anon_all on results     for all to anon using (true) with check (true);
-//   create policy anon_all on config      for all to anon using (true) with check (true);
+//   create policy anon_all on configs     for all to anon using (true) with check (true);
 //
 // Then copy Settings → API → Project URL and the anon/public key below.
 export const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
@@ -37,5 +41,5 @@ export const ADMIN_SECRET = "change-me"; // code that unlocks the Admin tab
 export const COLLECTIONS = {
   predictions: "predictions",
   results: "results",
-  config: "config",
+  config: "configs",
 };

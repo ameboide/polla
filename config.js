@@ -7,5 +7,5 @@ export const ADMIN_SECRET = "pollo"; // client-side code that unlocks the Admin 
 export const COLLECTIONS = {
   predictions: "predictions",
   results: "results",
-  config: "config",
+  config: "configs",
 };
