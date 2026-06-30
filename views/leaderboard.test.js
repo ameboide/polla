@@ -149,6 +149,37 @@ test("a drawn knockout result scored via effectiveResults awards the advance bon
   assert.equal(computeStandings(predictions, eff, cfg, index)[0].points, 23);
 });
 
+test("partialStandings filters the eligible matches by stage", () => {
+  const cfg = { winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1, advance: 5 };
+  const index = new Map([
+    ["m1",  { round: null, home: "X", away: "Y" }],          // group
+    ["m73", { round: "Round of 32", home: "SA", away: "CA" }], // knockout
+  ]);
+  const results = [
+    { matchId: "m1",  homeGoals: 1, awayGoals: 0 },
+    { matchId: "m73", homeGoals: 2, awayGoals: 1 },
+  ];
+  // Both players predicted both matches, so both are "eligible" before filtering.
+  const predictions = [
+    { player: "Ana", matchId: "m1",  homeGoals: 1, awayGoals: 0 },
+    { player: "Ana", matchId: "m73", homeGoals: 2, awayGoals: 1 },
+    { player: "Bob", matchId: "m1",  homeGoals: 0, awayGoals: 0 },
+    { player: "Bob", matchId: "m73", homeGoals: 1, awayGoals: 1 },
+  ];
+  const players = ["Ana", "Bob"];
+
+  assert.equal(partialStandings(predictions, results, cfg, players, index, "all").matchCount, 2);
+  assert.equal(partialStandings(predictions, results, cfg, players, index, "group").matchCount, 1);
+  assert.equal(partialStandings(predictions, results, cfg, players, index, "knockout").matchCount, 1);
+
+  // group-only: only m1 counts -> Ana exact 1-0 (18), Bob 0-0 vs 1-0 (0)
+  const grp = partialStandings(predictions, results, cfg, players, index, "group").standings;
+  assert.deepEqual(grp.find((r) => r.player === "Ana"), { player: "Ana", points: 18 });
+
+  // default (5-arg) stays unfiltered
+  assert.equal(partialStandings(predictions, results, cfg, players, index).matchCount, 2);
+});
+
 test("partialStandings only counts matches all selected players predicted", () => {
   const predictions = [
     { player: "Ana", matchId: "m1", homeGoals: 2, awayGoals: 1 }, // exact -> 18

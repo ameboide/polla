@@ -1,5 +1,6 @@
 import { score } from "../scoring.js";
 import { advancerOf, predictedAdvancer, resolveKnockout } from "./knockout.js";
+import { stageOf } from "./stages.js";
 
 // The result used for scoring a match: the admin's entered result if present,
 // otherwise the fixture's real result baked into fixtures.json. Matches with
@@ -78,8 +79,14 @@ export function eligibleMatchIds(predictions, selectedPlayers) {
 
 // Standings restricted to the selected players and only the matches all of
 // them predicted. Returns { standings, matchCount }.
-export function partialStandings(predictions, results, config, selectedPlayers, index) {
-  const eligible = eligibleMatchIds(predictions, selectedPlayers);
+export function partialStandings(predictions, results, config, selectedPlayers, index, stage = "all") {
+  let eligible = eligibleMatchIds(predictions, selectedPlayers);
+  if (stage !== "all") {
+    eligible = new Set([...eligible].filter((id) => {
+      const info = index && index.get(id);
+      return info ? stageOf(info) === stage : false;
+    }));
+  }
   const selected = new Set(selectedPlayers);
   const subset = predictions.filter((p) => selected.has(p.player) && eligible.has(p.matchId));
   return { standings: computeStandings(subset, results, config, index), matchCount: eligible.size };
@@ -139,6 +146,18 @@ export function renderLeaderboard(root, ctx) {
   note.className = "partial-note";
   section.appendChild(note);
 
+  let stage = "all";
+  const stagePicker = document.createElement("div");
+  stagePicker.className = "stage-picker";
+  const stageSelect = document.createElement("select");
+  [["all", "All stages"], ["group", "Group stage"], ["knockout", "Knockout stage"]]
+    .forEach(([value, label]) => {
+      stageSelect.appendChild(Object.assign(document.createElement("option"), { value, textContent: label }));
+    });
+  stageSelect.addEventListener("change", () => { stage = stageSelect.value; renderPartial(); });
+  stagePicker.append("Stage: ", stageSelect);
+  section.appendChild(stagePicker);
+
   const picker = document.createElement("div");
   picker.className = "player-picker";
   const selected = new Set(players);
@@ -163,9 +182,10 @@ export function renderLeaderboard(root, ctx) {
 
   function renderPartial() {
     const chosen = players.filter((p) => selected.has(p));
-    const { standings, matchCount } = partialStandings(predictions, eff, config, chosen, index);
+    const { standings, matchCount } = partialStandings(predictions, eff, config, chosen, index, stage);
+    const where = stage === "group" ? " Group-stage" : stage === "knockout" ? " Knockout-stage" : "";
     note.textContent = chosen.length
-      ? `Scoring ${chosen.length} player(s) over ${matchCount} match(es) all of them predicted.`
+      ? `Scoring ${chosen.length} player(s) over ${matchCount}${where} match(es) all of them predicted.`
       : "Select at least one player.";
     tableHolder.innerHTML = "";
     tableHolder.appendChild(standingsTable(standings, "No common matches yet."));
