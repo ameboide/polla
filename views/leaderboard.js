@@ -101,7 +101,7 @@ export function computeStandings(predictions, results, config, index) {
     if (r && index) pts += bonus(p, r, index.get(p.matchId), config);
     const t = totals.get(p.player) || { points: 0, predicted: 0 };
     t.points += pts;
-    t.predicted += 1;
+    if (r) t.predicted += 1; // count only matches that have been played (have a result)
     totals.set(p.player, t);
   }
   return [...totals.entries()]

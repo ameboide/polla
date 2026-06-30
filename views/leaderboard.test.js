@@ -58,14 +58,19 @@ test("sums points per player and sorts desc", () => {
   assert.equal(s[1].points, 0);
 });
 
-test("computeStandings counts how many matches each player predicted", () => {
+test("computeStandings counts predicted matches but excludes future (unplayed) ones", () => {
   const predictions = [
     { player: "Ana", matchId: "m1", homeGoals: 1, awayGoals: 0 },
-    { player: "Ana", matchId: "m2", homeGoals: 2, awayGoals: 2 }, // no result, still counted
+    { player: "Ana", matchId: "m2", homeGoals: 2, awayGoals: 2 },
+    { player: "Ana", matchId: "m3", homeGoals: 0, awayGoals: 1 }, // future -> not counted
     { player: "Bob", matchId: "m1", homeGoals: 0, awayGoals: 0 },
   ];
-  const s = computeStandings(predictions, [], cfg);
-  assert.equal(s.find((r) => r.player === "Ana").predicted, 2);
+  const results = [ // m1 and m2 played; m3 has no result yet
+    { matchId: "m1", homeGoals: 1, awayGoals: 0 },
+    { matchId: "m2", homeGoals: 2, awayGoals: 2 },
+  ];
+  const s = computeStandings(predictions, results, cfg);
+  assert.equal(s.find((r) => r.player === "Ana").predicted, 2); // m1, m2 (not m3)
   assert.equal(s.find((r) => r.player === "Bob").predicted, 1);
 });
 
