@@ -30,8 +30,8 @@ export function cacheConfig(value) {
   try { localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify({ at: Date.now(), value })); } catch {}
 }
 
-// Each predictions record is { id, player, matches: [{matchId,homeGoals,awayGoals}] }.
-// Flatten to the {player, matchId, homeGoals, awayGoals} rows the views/scoring expect.
+// Each predictions record is { id, player, matches: [{matchId,homeGoals,awayGoals,advancer?}] }.
+// Flatten to the {player, matchId, homeGoals, awayGoals, advancer?} rows the views/scoring expect.
 export function flattenPredictions(records) {
   return records.flatMap((r) =>
     (r.matches || []).map((m) => ({

@@ -75,3 +75,11 @@ test("mergeMatches preserves advancer on edits", () => {
   );
   assert.deepEqual(merged, [{ matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "Canada" }]);
 });
+
+test("mergeMatches drops advancer when an edit omits it", () => {
+  const merged = mergeMatches(
+    [{ matchId: "m73", homeGoals: 0, awayGoals: 0, advancer: "Canada" }],
+    [{ matchId: "m73", homeGoals: 1, awayGoals: 0 }],
+  );
+  assert.deepEqual(merged, [{ matchId: "m73", homeGoals: 1, awayGoals: 0 }]);
+});
