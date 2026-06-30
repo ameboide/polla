@@ -103,8 +103,11 @@ export function renderBatchGrid(root, ctx, opts) {
       // shows in the day group header, so only the time is needed here).
       const head = document.createElement("div");
       head.className = "match-head";
+      const tag = fx.group ? `[${fx.group}] ` : (fx.round ? `[${fx.round}] ` : "");
+      const homeName = fx.homeLabel ?? fx.home ?? "?";
+      const awayName = fx.awayLabel ?? fx.away ?? "?";
       head.appendChild(Object.assign(document.createElement("span"), {
-        textContent: `[${fx.group}] ${fx.home} vs ${fx.away}`,
+        textContent: `${tag}${homeName} vs ${awayName}`,
       }));
       head.appendChild(Object.assign(document.createElement("span"), {
         className: "match-time",
