@@ -126,6 +126,29 @@ test("computeStandings never bonuses group matches", () => {
   assert.equal(computeStandings(predictions, results, cfg, index)[0].points, 5); // winner 3 + goalDiff 2
 });
 
+test("effectiveResults carries advancer on a knockout result but not on group rows", () => {
+  const fixtures = [
+    { id: "m73", round: "Round of 32", home: "South Africa", away: "Canada" },
+    { id: "m1", group: "A", home: "X", away: "Y", result: { homeGoals: 2, awayGoals: 0 } },
+  ];
+  const results = [{ matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "Canada" }];
+  assert.deepEqual(effectiveResults(fixtures, results), [
+    { matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "Canada" },
+    { matchId: "m1", homeGoals: 2, awayGoals: 0 },
+  ]);
+});
+
+test("a drawn knockout result scored via effectiveResults awards the advance bonus", () => {
+  const cfg = { winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1, advance: 5 };
+  const fixtures = [{ id: "m73", round: "Round of 32", home: "South Africa", away: "Canada" }];
+  const results = [{ matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "Canada" }];
+  const predictions = [{ player: "Ana", matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "Canada" }];
+  const eff = effectiveResults(fixtures, results);
+  const index = matchIndex(fixtures, results);
+  // 1-1 vs 1-1: exact 10 + winner 3 + goalDiff 2 + totalGoals 1 + eachTeam 1+1 = 18, + advance 5 = 23
+  assert.equal(computeStandings(predictions, eff, cfg, index)[0].points, 23);
+});
+
 test("partialStandings only counts matches all selected players predicted", () => {
   const predictions = [
     { player: "Ana", matchId: "m1", homeGoals: 2, awayGoals: 1 }, // exact -> 18

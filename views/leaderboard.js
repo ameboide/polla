@@ -9,8 +9,11 @@ export function effectiveResults(fixtures, adminResults) {
   const out = [];
   for (const fx of fixtures) {
     const admin = byMatch.get(fx.id);
-    if (admin) out.push({ matchId: fx.id, homeGoals: admin.homeGoals, awayGoals: admin.awayGoals });
-    else if (fx.result) out.push({ matchId: fx.id, homeGoals: fx.result.homeGoals, awayGoals: fx.result.awayGoals });
+    const src = admin || fx.result;
+    if (!src) continue;
+    const row = { matchId: fx.id, homeGoals: src.homeGoals, awayGoals: src.awayGoals };
+    if (src.advancer != null) row.advancer = src.advancer;
+    out.push(row);
   }
   return out;
 }
@@ -32,7 +35,7 @@ function bonus(prediction, result, info, config) {
   if (!info || !info.round) return 0;
   const actual = advancerOf(result, info.home, info.away);
   const pick = predictedAdvancer(prediction, info.home, info.away);
-  return actual && pick && actual === pick ? (config.advance || 0) : 0;
+  return actual && pick && actual === pick ? (config.advance ?? 0) : 0;
 }
 
 // Points a single player earned per match: Map(matchId -> points). Only
