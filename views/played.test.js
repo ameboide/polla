@@ -32,3 +32,14 @@ test("predictionRows leaves points null when there is no result yet", () => {
   const rows = predictionRows(predictions, "m1", null, cfg);
   assert.equal(rows[0].points, null);
 });
+
+test("predictionRows adds the advance bonus and exposes the pick for knockout", () => {
+  const cfg = { winner: 3, exactScore: 10, goalDiff: 2, totalGoals: 1, eachTeamGoals: 1, advance: 5 };
+  const predictions = [{ player: "Ana", matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "Canada" }];
+  const result = { matchId: "m73", homeGoals: 1, awayGoals: 1, advancer: "Canada" };
+  const info = { round: "Round of 32", home: "South Africa", away: "Canada" };
+  const [row] = predictionRows(predictions, "m73", result, cfg, info);
+  // 1-1 vs 1-1: exact 10 + winner 3 + goalDiff 2 + totalGoals 1 + eachTeam 1+1 = 18, + advance 5 = 23
+  assert.equal(row.points, 23);
+  assert.equal(row.advancer, "Canada");
+});
