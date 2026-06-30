@@ -83,6 +83,12 @@ export function renderBatchGrid(root, ctx, opts) {
     }
   });
 
+  // Disable every control inside an extra control's element (e.g. the knockout
+  // advancer select) so a locked match can't be edited via the extra control.
+  const lockExtra = (extra) => {
+    if (extra && extra.el) extra.el.querySelectorAll("select, input, button").forEach((c) => { c.disabled = true; });
+  };
+
   groupByStage(opts.fixtures, Date.now()).forEach((stage) => {
     const stageEl = document.createElement("details");
     stageEl.className = "stage";
@@ -145,7 +151,10 @@ export function renderBatchGrid(root, ctx, opts) {
       let extra = null;
       if (opts.extraControl) {
         extra = opts.extraControl(fx, { homeInput: home, awayInput: away, recompute });
-        if (extra && extra.el) card.appendChild(extra.el);
+        if (extra && extra.el) {
+          card.appendChild(extra.el);
+          if (locked) lockExtra(extra);
+        }
       }
 
       const result = opts.resultFor ? opts.resultFor(fx) : null;
@@ -179,6 +188,7 @@ export function renderBatchGrid(root, ctx, opts) {
     e.away.value = e.baseline ? e.baseline.awayGoals : "";
     e.home.disabled = e.away.disabled = true;
     if (e.extra && e.extra.reset) e.extra.reset();
+    lockExtra(e.extra);
     e.card.classList.add("locked");
     recompute();
     ctx.setStatus("A match kicked off — its inputs are now locked.");
